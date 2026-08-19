@@ -108,6 +108,16 @@ docker compose ps
 
 `restart: unless-stopped` tự khởi động lại service sau reboot/crash. `depends_on` và healthcheck đảm bảo app chỉ start sau khi PostgreSQL sẵn sàng. Dữ liệu nằm trong named volume `postgres_data`, không bị xóa bởi `docker compose down` hoặc rebuild. Không chạy `docker compose down -v` trên production vì lệnh đó xóa volume dữ liệu.
 
+## Deploy CasaOS + Cloudflare
+
+CasaOS có thể dùng `casaos-compose.yml`. File này không chạy Caddy; app expose port `3000` để bạn trỏ Cloudflare Tunnel hoặc reverse proxy Cloudflare có sẵn vào.
+
+```bash
+docker compose -f casaos-compose.yml up -d
+```
+
+Khi import vào CasaOS, sửa trực tiếp các giá trị `change_me_*`, `NEXTAUTH_URL` và `ADMIN_EMAILS` trong YAML. Image mặc định là `patcoder97/halflife11:latest`.
+
 ## Backup và restore PostgreSQL
 
 Backup:

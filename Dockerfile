@@ -19,6 +19,7 @@ WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
+RUN mkdir -p public
 RUN ./node_modules/.bin/prisma generate
 RUN npm run build
 
