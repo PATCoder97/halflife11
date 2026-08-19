@@ -63,7 +63,6 @@ main > * {
 }
 
 .hud-corners {
-  position: relative;
   border-radius: 12px 0 12px 0;
   corner-shape: bevel;
 }

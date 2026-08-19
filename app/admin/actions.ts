@@ -8,7 +8,9 @@ import { authOptions, isAdminEmail } from "@/lib/auth";
 import { generateShootingSchedule } from "@/lib/match-generator";
 import { resultForTeam } from "@/lib/match-validation";
 import { prisma } from "@/lib/prisma";
+import { deriveStandings } from "@/lib/scoring";
 import { formatShootingPeriodName } from "@/lib/session-name";
+import { applyWaterPayments, validateWaterPayment } from "@/lib/water-balance";
 
 async function requireAdmin() {
   const session = await getServerSession(authOptions);
@@ -32,6 +34,7 @@ function revalidateScoreViews(sessionId?: string) {
   revalidatePath("/admin");
   revalidatePath("/admin/sessions");
   revalidatePath("/admin/sessions/history");
+  revalidatePath("/history");
   if (sessionId) revalidatePath(`/sessions/${sessionId}`);
 }
 
@@ -65,6 +68,49 @@ export async function toggleWeaponActive(formData: FormData) {
   if (!weapon) throw new Error("Không tìm thấy súng");
   await prisma.weapon.update({ where: { id: weaponId }, data: { active: !weapon.active } });
   revalidateScoreViews();
+}
+
+export type WaterPaymentActionState = {
+  error?: string;
+  success?: string;
+};
+
+export async function recordWaterPayment(
+  _previousState: WaterPaymentActionState,
+  formData: FormData,
+): Promise<WaterPaymentActionState> {
+  try {
+    await requireAdmin();
+    const fromPlayerId = requiredString(formData, "fromPlayerId");
+    const toPlayerId = requiredString(formData, "toPlayerId");
+    const amount = Number(requiredString(formData, "amount"));
+    const payment = { fromPlayerId, toPlayerId, amount };
+
+    await prisma.$transaction(async (tx) => {
+      const [players, resultRows, previousPayments] = await Promise.all([
+        tx.player.findMany({ select: { id: true, name: true } }),
+        tx.matchPlayer.findMany({
+          where: { result: { not: null } },
+          select: { matchId: true, playerId: true, result: true },
+        }),
+        tx.waterPayment.findMany({
+          select: { fromPlayerId: true, toPlayerId: true, amount: true },
+        }),
+      ]);
+      const matchStandings = deriveStandings(players, resultRows);
+      const waterStandings = applyWaterPayments(matchStandings, previousPayments);
+      validateWaterPayment(waterStandings, payment);
+
+      await tx.waterPayment.create({ data: payment });
+    }, { isolationLevel: "Serializable" });
+
+    revalidateScoreViews();
+    return { success: `Đã ghi nhận thanh toán ${amount} chai nước` };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Không thể ghi nhận thanh toán",
+    };
+  }
 }
 
 export async function createGameSession(formData: FormData) {

@@ -33,6 +33,8 @@ model Player {
   gameSessions     GameSessionPlayer[]
   outgoingPayments SettlementPayment[] @relation("PaymentFrom")
   incomingPayments SettlementPayment[] @relation("PaymentTo")
+  waterPaymentsSent     WaterPayment[]      @relation("WaterPaymentFrom")
+  waterPaymentsReceived WaterPayment[]      @relation("WaterPaymentTo")
 }
 
 model Weapon {
@@ -139,6 +141,20 @@ model SettlementPayment {
   toPlayer           Player           @relation("PaymentTo", fields: [toPlayerId], references: [id], onDelete: Restrict)
 
   @@index([settlementPeriodId, paid])
+  @@index([fromPlayerId])
+  @@index([toPlayerId])
+}
+
+model WaterPayment {
+  id           String   @id @default(cuid())
+  fromPlayerId String
+  toPlayerId   String
+  amount       Int
+  createdAt    DateTime @default(now())
+  fromPlayer   Player   @relation("WaterPaymentFrom", fields: [fromPlayerId], references: [id], onDelete: Restrict)
+  toPlayer     Player   @relation("WaterPaymentTo", fields: [toPlayerId], references: [id], onDelete: Restrict)
+
+  @@index([createdAt])
   @@index([fromPlayerId])
   @@index([toPlayerId])
 }

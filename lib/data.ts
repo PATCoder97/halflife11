@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { deriveStandings } from "@/lib/scoring";
 import { calculateSettlement } from "@/lib/settlement";
+import { applyWaterPayments } from "@/lib/water-balance";
 
 export type ScoreScope =
   | { type: "ALL_TIME" }
@@ -30,7 +31,16 @@ export async function getStandings(scope: ScoreScope) {
 }
 
 export async function getWaterData(scope: ScoreScope) {
-  const standings = await getStandings(scope);
+  const [matchStandings, payments] = await Promise.all([
+    getStandings(scope),
+    scope.type === "ALL_TIME"
+      ? prisma.waterPayment.findMany({
+          orderBy: { createdAt: "desc" },
+          include: { fromPlayer: true, toPlayer: true },
+        })
+      : Promise.resolve([]),
+  ]);
+  const standings = applyWaterPayments(matchStandings, payments);
   const settlement = calculateSettlement(
     standings.map((standing) => ({
       playerId: standing.playerId,
@@ -40,11 +50,19 @@ export async function getWaterData(scope: ScoreScope) {
   const names = new Map(standings.map((standing) => [standing.playerId, standing.name]));
 
   return {
+    matchStandings,
     standings,
     settlement: settlement.map((transaction) => ({
       ...transaction,
       fromName: names.get(transaction.from) ?? transaction.from,
       toName: names.get(transaction.to) ?? transaction.to,
+    })),
+    payments: payments.slice(0, 50).map((payment) => ({
+      id: payment.id,
+      fromName: payment.fromPlayer.name,
+      toName: payment.toPlayer.name,
+      amount: payment.amount,
+      createdAt: payment.createdAt,
     })),
   };
 }

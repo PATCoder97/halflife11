@@ -8,6 +8,7 @@ import {
 import { deriveStandings, type ScoreRow } from "@/lib/scoring";
 import { formatShootingPeriodName } from "@/lib/session-name";
 import { calculateSettlement } from "@/lib/settlement";
+import { applyWaterPayments, validateWaterPayment } from "@/lib/water-balance";
 
 const players = ["A", "B", "C", "D"].map((id) => ({ id, name: id }));
 
@@ -155,5 +156,38 @@ describe("shooting period name", () => {
     expect(formatShootingPeriodName(new Date("2026-08-19T07:05:00.000Z"))).toBe(
       "Thứ Tư 19/08/2026 - 14:05",
     );
+  });
+});
+
+describe("water payment ledger", () => {
+  it("reduces the debtor and creditor balances without changing match records", () => {
+    const standings = deriveStandings(players, [
+      ...resultRows("m1", ["B", "C"], ["A", "D"]),
+      ...resultRows("m2", ["B", "D"], ["A", "C"]),
+      ...resultRows("m3", ["B", "C"], ["A", "D"]),
+    ]);
+    const adjusted = applyWaterPayments(standings, [
+      { fromPlayerId: "A", toPlayerId: "B", amount: 2 },
+    ]);
+    const balances = Object.fromEntries(adjusted.map((item) => [item.playerId, item.points]));
+
+    expect(balances).toEqual({ B: 1, C: 1, A: -1, D: -1 });
+    expect(calculateSettlement(
+      adjusted.map((item) => ({ playerId: item.playerId, balance: item.points })),
+    )).toHaveLength(2);
+    expect(standings.find((item) => item.playerId === "A")?.points).toBe(-3);
+  });
+
+  it("rejects paying more than the outstanding balance", () => {
+    const standings = [
+      { playerId: "A", name: "A", points: -2, wins: 0, losses: 2, matches: 2, winRate: 0 },
+      { playerId: "B", name: "B", points: 2, wins: 2, losses: 0, matches: 2, winRate: 100 },
+    ];
+
+    expect(() => validateWaterPayment(standings, {
+      fromPlayerId: "A",
+      toPlayerId: "B",
+      amount: 3,
+    })).toThrow("Chỉ có thể trả tối đa 2 chai nước");
   });
 });

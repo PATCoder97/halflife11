@@ -142,7 +142,7 @@ export default async function SessionManagementPage() {
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Link href={`/sessions/${currentSession.id}`} className="hud-corners border border-leaf/40 px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-leaf">Public view</Link>
-                  <Link href="/admin/sessions/history" className="hud-corners border border-cream/15 px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-concrete">Lịch sử</Link>
+                  <Link href="/history" className="hud-corners border border-cream/15 px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-concrete">Lịch sử</Link>
                   <form action={closeCurrentSession}>
                     <Button className="min-h-8 border-rust bg-rust px-3 py-1 text-[9px]">Đóng kỳ bắn</Button>
                   </form>
