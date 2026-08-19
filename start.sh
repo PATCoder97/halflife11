@@ -40,7 +40,7 @@ POSTGRES_PORT="$(read_env POSTGRES_PORT)"
 : "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required in .env}"
 
 POSTGRES_PORT="${POSTGRES_PORT:-5434}"
-export DATABASE_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@127.0.0.1:${POSTGRES_PORT}/${POSTGRES_DB}?schema=public"
+export DATABASE_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@127.0.0.1:${POSTGRES_PORT}/${POSTGRES_DB}"
 
 # Local Next.js replaces the Compose app and proxy; PostgreSQL stays in Docker.
 docker compose stop app caddy >/dev/null 2>&1 || true

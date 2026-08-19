@@ -14,7 +14,7 @@ services:
           memory: 1024M
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=postgresql://halflife:change_me_strong_password@halflife11-db:5432/halflife?schema=public
+      - DATABASE_URL=postgresql://halflife:change_me_strong_password@halflife11-db:5432/halflife
       - AUTH_SECRET=change_me_auth_secret
       - NEXTAUTH_URL=https://halflife.example.com
       - GOOGLE_CLIENT_ID=change_me_google_client_id
@@ -22,7 +22,7 @@ services:
       - ADMIN_EMAILS=admin@example.com
       - WATER_UNIT_NAME=chai nước
     hostname: halflife11-app
-    image: patcoder97/halflife11:v1.0.8
+    image: patcoder97/halflife11:v1.0.9
     labels:
       icon: https://raw.githubusercontent.com/PATCoder97/halflife11/main/app/icon.png
     ports:

@@ -31,7 +31,7 @@ services:
     restart: unless-stopped
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://${POSTGRES_USER:-halflife}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-halflife}?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER:-halflife}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-halflife}
       AUTH_SECRET: ${AUTH_SECRET:?AUTH_SECRET is required}
       NEXTAUTH_URL: ${NEXTAUTH_URL:?NEXTAUTH_URL is required}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:?GOOGLE_CLIENT_ID is required}
