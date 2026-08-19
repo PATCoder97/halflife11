@@ -2,7 +2,7 @@ FROM node:20-bookworm-slim AS base
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends ca-certificates openssl \
+  && apt-get install -y --no-install-recommends ca-certificates openssl postgresql-client \
   && rm -rf /var/lib/apt/lists/*
 
 FROM base AS dependencies
@@ -35,7 +35,8 @@ COPY --from=production-dependencies --chown=nextjs:nodejs /app/node_modules ./no
 COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000
-CMD ["sh", "-c", "npm run db:migrate:deploy && npm run start"]
+CMD ["sh", "-c", "sh ./scripts/migrate-deploy.sh && npm run start"]
