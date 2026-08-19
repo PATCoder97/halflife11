@@ -7,8 +7,7 @@ import { cn } from "@/lib/utils";
 
 const links = [
   ["/", "Buổi hiện tại"],
-  ["/leaderboard", "Xếp hạng"],
-  ["/water", "Tiền nước"],
+  ["/leaderboard", "Xếp hạng & nước"],
   ["/admin", "Người & súng"],
   ["/admin/sessions", "Kỳ bắn"],
   ["/admin/sessions/history", "Lịch sử"],

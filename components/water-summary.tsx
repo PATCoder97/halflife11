@@ -69,19 +69,28 @@ export function WaterSummary({
             <Droplets className="h-4 w-4 text-leaf" /> Tổng {total} {unitName}
           </div>
         </div>
-        <div className="space-y-3">
-          {settlement.map((item, index) => (
-            <div
-              key={`${item.from}-${item.to}-${index}`}
-              className="hud-corners grid grid-cols-[1fr_auto_1fr] items-center gap-3 border border-leaf/20 border-l-2 border-l-leaf bg-black/30 p-4"
-            >
-              <span className="font-black text-rust">{item.fromName}</span>
-              <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-concrete">
-                {item.amount} {unitName} <ArrowRight className="h-4 w-4" />
-              </span>
-              <span className="text-right font-black text-leaf">{item.toName}</span>
+        <div className="overflow-x-auto">
+          {settlement.length > 0 && (
+            <div className="min-w-[540px]">
+              <div className="grid grid-cols-[1fr_12rem_1fr] border-b border-leaf/40 text-[10px] font-bold uppercase tracking-[0.18em] text-concrete">
+                <span className="px-3 py-4">Người trả</span>
+                <span className="px-3 py-4 text-center">Số lượng</span>
+                <span className="px-3 py-4 text-right">Người nhận</span>
+              </div>
+              {settlement.map((item, index) => (
+                <div
+                  key={`${item.from}-${item.to}-${index}`}
+                  className="grid grid-cols-[1fr_12rem_1fr] items-center border-b border-cream/10 transition last:border-0 hover:bg-leaf/5"
+                >
+                  <span className="px-3 py-4 font-bold text-rust">{item.fromName}</span>
+                  <span className="flex items-center justify-center gap-2 px-3 py-4 text-sm font-bold text-concrete">
+                    {item.amount} {unitName} <ArrowRight className="h-4 w-4" />
+                  </span>
+                  <span className="px-3 py-4 text-right font-bold text-leaf">{item.toName}</span>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
           {settlement.length === 0 && (
             <div className="hud-corners flex items-center gap-3 border border-leaf/30 bg-leaf/10 p-5 font-bold text-leaf">
               <CheckCircle2 className="h-5 w-5" /> Tất cả đã cân bằng.
