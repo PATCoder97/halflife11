@@ -1,0 +1,164 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version_tag:
+        description: "Tag image (ví dụ: v1.0.5 hoặc dev)"
+        required: false
+        type: string
+      dry_run:
+        description: "Chỉ build, không push lên Docker Hub"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  resolve-build-meta:
+    name: Resolve build metadata
+    runs-on: ubuntu-latest
+    outputs:
+      should_build: ${{ steps.resolve.outputs.should_build }}
+      should_push: ${{ steps.resolve.outputs.should_push }}
+      version_tag: ${{ steps.resolve.outputs.version_tag }}
+      is_version: ${{ steps.resolve.outputs.is_version }}
+      image_namespace: ${{ steps.resolve.outputs.image_namespace }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Resolve image tag
+        id: resolve
+        shell: bash
+        env:
+          MANUAL_TAG: ${{ inputs.version_tag }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          DOCKERHUB_NAMESPACE: ${{ vars.DOCKERHUB_NAMESPACE }}
+        run: |
+          set -euo pipefail
+
+          VERSION_TAG=""
+          SOURCE="none"
+
+          if [[ "${GITHUB_REF_TYPE:-}" == "tag" ]]; then
+            VERSION_TAG="${GITHUB_REF_NAME}"
+            SOURCE="git-tag"
+          elif [[ -n "${MANUAL_TAG:-}" ]]; then
+            VERSION_TAG="$MANUAL_TAG"
+            SOURCE="manual-input"
+          else
+            COMMIT_SUBJECT="$(git log -1 --pretty=%s)"
+            if [[ "$COMMIT_SUBJECT" =~ \[([^]]+)\] ]]; then
+              VERSION_TAG="${BASH_REMATCH[1]}"
+              SOURCE="commit-message"
+            fi
+          fi
+
+          SHOULD_BUILD="false"
+          SHOULD_PUSH="false"
+          IS_VERSION="false"
+
+          if [[ -n "$VERSION_TAG" ]]; then
+            SHOULD_BUILD="true"
+            if [[ "${DRY_RUN:-false}" != "true" ]]; then
+              SHOULD_PUSH="true"
+            fi
+          fi
+
+          if [[ "$VERSION_TAG" == v* ]]; then
+            IS_VERSION="true"
+          fi
+
+          IMAGE_NAMESPACE="${DOCKERHUB_NAMESPACE:-patcoder97}"
+
+          {
+            echo "should_build=$SHOULD_BUILD"
+            echo "should_push=$SHOULD_PUSH"
+            echo "version_tag=$VERSION_TAG"
+            echo "is_version=$IS_VERSION"
+            echo "image_namespace=$IMAGE_NAMESPACE"
+          } >> "$GITHUB_OUTPUT"
+
+          {
+            echo "### Docker build"
+            echo "- Nguồn tag: $SOURCE"
+            echo "- Tag: ${VERSION_TAG:-<không có>}"
+            echo "- Build: $SHOULD_BUILD"
+            echo "- Push: $SHOULD_PUSH"
+            echo "- Image: $IMAGE_NAMESPACE/halflife11"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  build-and-push:
+    name: Build and push image
+    runs-on: ubuntu-latest
+    needs: resolve-build-meta
+    if: needs.resolve-build-meta.outputs.should_build == 'true'
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        if: needs.resolve-build-meta.outputs.should_push == 'true'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Prepare image tags
+        id: tags
+        shell: bash
+        env:
+          IMAGE_NAMESPACE: ${{ needs.resolve-build-meta.outputs.image_namespace }}
+          VERSION_TAG: ${{ needs.resolve-build-meta.outputs.version_tag }}
+          IS_VERSION: ${{ needs.resolve-build-meta.outputs.is_version }}
+        run: |
+          set -euo pipefail
+
+          IMAGE_NAME="$IMAGE_NAMESPACE/halflife11"
+          {
+            echo "tags<<EOF"
+            echo "$IMAGE_NAME:$VERSION_TAG"
+            if [[ "$IS_VERSION" == "true" ]]; then
+              echo "$IMAGE_NAME:latest"
+            fi
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: ${{ needs.resolve-build-meta.outputs.should_push == 'true' }}
+          tags: ${{ steps.tags.outputs.tags }}
+          provenance: false
+          cache-from: type=gha,scope=halflife11
+          cache-to: type=gha,scope=halflife11,mode=max
+
+      - name: Write build summary
+        shell: bash
+        env:
+          IMAGE_TAGS: ${{ steps.tags.outputs.tags }}
+        run: |
+          {
+            echo "### Kết quả build image"
+            echo "- Platforms: linux/amd64, linux/arm64"
+            echo "- Push: ${{ needs.resolve-build-meta.outputs.should_push }}"
+            echo "- Tags:"
+            echo "$IMAGE_TAGS" | sed 's/^/  - /'
+          } >> "$GITHUB_STEP_SUMMARY"
