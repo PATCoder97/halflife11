@@ -6,7 +6,7 @@ if [ -z "${DATABASE_URL:-}" ]; then
   exit 1
 fi
 
-DB_URL="${DATABASE_URL%%\?*}"
+DB_URL="$(node ./scripts/normalize-database-url.mjs)"
 
 psql "$DB_URL" -v ON_ERROR_STOP=1 <<'SQL'
 CREATE TABLE IF NOT EXISTS "_prisma_migrations" (

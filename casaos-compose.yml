@@ -22,7 +22,7 @@ services:
       - ADMIN_EMAILS=admin@example.com
       - WATER_UNIT_NAME=chai nước
     hostname: halflife11-app
-    image: patcoder97/halflife11:v1.0.9
+    image: patcoder97/halflife11:v1.0.10
     labels:
       icon: https://raw.githubusercontent.com/PATCoder97/halflife11/main/app/icon.png
     ports:

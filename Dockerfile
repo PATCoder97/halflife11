@@ -39,4 +39,4 @@ COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000
-CMD ["sh", "-c", "sh ./scripts/migrate-deploy.sh && npm run start"]
+CMD ["sh", "./scripts/start-production.sh"]

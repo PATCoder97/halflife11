@@ -116,7 +116,7 @@ CasaOS có thể dùng `casaos-compose.yml`. File này không chạy Caddy; app 
 docker compose -f casaos-compose.yml up -d
 ```
 
-Khi import vào CasaOS, sửa trực tiếp các giá trị `change_me_*`, `NEXTAUTH_URL` và `ADMIN_EMAILS` trong YAML. Image mặc định là `patcoder97/halflife11:v1.0.9`.
+Khi import vào CasaOS, sửa trực tiếp các giá trị `change_me_*`, `NEXTAUTH_URL` và `ADMIN_EMAILS` trong YAML. Image mặc định là `patcoder97/halflife11:v1.0.10`.
 
 ## Backup và restore PostgreSQL
 
