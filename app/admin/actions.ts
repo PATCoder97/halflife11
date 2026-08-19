@@ -8,6 +8,7 @@ import { authOptions, isAdminEmail } from "@/lib/auth";
 import { generateShootingSchedule } from "@/lib/match-generator";
 import { resultForTeam } from "@/lib/match-validation";
 import { prisma } from "@/lib/prisma";
+import { formatShootingPeriodName } from "@/lib/session-name";
 
 async function requireAdmin() {
   const session = await getServerSession(authOptions);
@@ -68,7 +69,8 @@ export async function toggleWeaponActive(formData: FormData) {
 
 export async function createGameSession(formData: FormData) {
   await requireAdmin();
-  const name = requiredString(formData, "name");
+  const startedAt = new Date();
+  const name = formatShootingPeriodName(startedAt);
   const matchCount = Number(requiredString(formData, "matchCount"));
   const playerIds = [...new Set(formData.getAll("playerIds").filter(
     (value): value is string => typeof value === "string" && Boolean(value),
@@ -109,6 +111,7 @@ export async function createGameSession(formData: FormData) {
     await tx.gameSession.create({
       data: {
         name,
+        startedAt,
         isCurrent: true,
         plannedMatchCount: matchCount,
         players: { create: playerIds.map((playerId) => ({ playerId })) },

@@ -6,6 +6,7 @@ import {
   generateShootingSchedule,
 } from "@/lib/match-generator";
 import { deriveStandings, type ScoreRow } from "@/lib/scoring";
+import { formatShootingPeriodName } from "@/lib/session-name";
 import { calculateSettlement } from "@/lib/settlement";
 
 const players = ["A", "B", "C", "D"].map((id) => ({ id, name: id }));
@@ -145,6 +146,14 @@ describe("shooting schedule generator", () => {
   it("rejects an empty weapon pool", () => {
     expect(() => generateShootingSchedule(["A", "B", "C", "D"], [], 1)).toThrow(
       "Shooting schedule requires at least one weapon",
+    );
+  });
+});
+
+describe("shooting period name", () => {
+  it("uses Vietnamese weekday, date, hour and minute", () => {
+    expect(formatShootingPeriodName(new Date("2026-08-19T07:05:00.000Z"))).toBe(
+      "Thứ Tư 19/08/2026 - 14:05",
     );
   });
 });

@@ -81,11 +81,11 @@ export default async function SessionManagementPage() {
         <div className="mt-6 grid gap-7 xl:grid-cols-[1.2fr_.8fr]">
           <form action={createGameSession} className="hud-corners space-y-5 border border-cream/10 bg-black/20 p-5">
             <p className="text-sm text-concrete">Chọn người, số trận và kho súng một lần. Hệ thống tự sinh đội hình cân bằng và khóa súng của từng trận.</p>
-            <div className="grid gap-3 sm:grid-cols-[1fr_10rem]">
-              <label className="space-y-2 text-[10px] font-bold uppercase tracking-wider text-concrete">
-                Tên kỳ bắn
-                <input name="name" placeholder="HL tối thứ 7" className={inputClass} required />
-              </label>
+            <div className="grid gap-3 sm:grid-cols-[1fr_10rem] sm:items-end">
+              <div className="hud-corners border border-leaf/20 bg-leaf/5 px-4 py-3">
+                <p className="text-[9px] font-black uppercase tracking-[0.18em] text-leaf">Tên kỳ bắn tự động</p>
+                <p className="mt-1 text-sm text-concrete">Thứ, ngày tháng và giờ phút lúc tạo kỳ.</p>
+              </div>
               <label className="space-y-2 text-[10px] font-bold uppercase tracking-wider text-concrete">
                 Số trận
                 <input name="matchCount" type="number" min="1" max="100" defaultValue="6" className={inputClass} required />
