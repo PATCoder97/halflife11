@@ -12,7 +12,7 @@ export function BalanceTable({ standings }: { standings: Standing[] }) {
     <div className="overflow-x-auto">
       <table className="w-full border-collapse text-left">
         <thead>
-          <tr className="border-b-2 border-ink/15 text-xs uppercase tracking-[0.15em] text-ink/55">
+          <tr className="border-b border-leaf/40 text-[10px] uppercase tracking-[0.18em] text-concrete">
             <th className="px-3 py-4">Người chơi</th>
             <th className="px-3 py-4 text-right">Điểm</th>
             <th className="px-3 py-4">Trạng thái</th>
@@ -20,16 +20,16 @@ export function BalanceTable({ standings }: { standings: Standing[] }) {
         </thead>
         <tbody>
           {standings.map((item) => (
-            <tr key={item.playerId} className="border-b border-ink/10 last:border-0">
+            <tr key={item.playerId} className="border-b border-cream/10 transition hover:bg-leaf/5 last:border-0">
               <td className="px-3 py-4 font-bold">{item.name}</td>
               <td
                 className={`px-3 py-4 text-right text-lg font-black ${
-                  item.points > 0 ? "text-leaf" : item.points < 0 ? "text-rust" : "text-ink/50"
+                  item.points > 0 ? "text-leaf" : item.points < 0 ? "text-rust" : "text-concrete"
                 }`}
               >
                 {item.points > 0 ? `+${item.points}` : item.points}
               </td>
-              <td className="px-3 py-4 text-ink/70">{status(item.points)}</td>
+              <td className="px-3 py-4 text-concrete">{status(item.points)}</td>
             </tr>
           ))}
         </tbody>

@@ -34,6 +34,15 @@ model Player {
   incomingPayments SettlementPayment[] @relation("PaymentTo")
 }
 
+model Weapon {
+  id           String        @id @default(cuid())
+  name         String        @unique
+  active       Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  matchPlayers MatchPlayer[]
+}
+
 model GameSession {
   id        String   @id @default(cuid())
   name      String
@@ -65,15 +74,18 @@ model MatchPlayer {
   id        String      @id @default(cuid())
   matchId   String
   playerId  String
+  weaponId  String?
   team      Team
   result    MatchResult
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
   match     Match       @relation(fields: [matchId], references: [id], onDelete: Cascade)
   player    Player      @relation(fields: [playerId], references: [id], onDelete: Restrict)
+  weapon    Weapon?     @relation(fields: [weaponId], references: [id], onDelete: SetNull)
 
   @@unique([matchId, playerId])
   @@index([playerId, result])
+  @@index([weaponId])
 }
 
 model SettlementPeriod {

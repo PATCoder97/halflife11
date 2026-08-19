@@ -9,7 +9,7 @@ export function LeaderboardTable({ standings }: { standings: Standing[] }) {
     <div className="overflow-x-auto">
       <table className="w-full min-w-[650px] border-collapse text-left">
         <thead>
-          <tr className="border-b-2 border-ink/15 text-xs uppercase tracking-[0.15em] text-ink/55">
+          <tr className="border-b border-leaf/40 text-[10px] uppercase tracking-[0.18em] text-concrete">
             <th className="px-3 py-4">Rank</th>
             <th className="px-3 py-4">Player</th>
             <th className="px-3 py-4 text-right">Points</th>
@@ -21,8 +21,8 @@ export function LeaderboardTable({ standings }: { standings: Standing[] }) {
         </thead>
         <tbody>
           {standings.map((standing, index) => (
-            <tr key={standing.playerId} className="border-b border-ink/10 last:border-0">
-              <td className="px-3 py-4 font-serif text-xl font-black">{index + 1}</td>
+            <tr key={standing.playerId} className="border-b border-cream/10 transition hover:bg-leaf/5 last:border-0">
+              <td className="px-3 py-4 font-serif text-xl font-black text-leaf">{String(index + 1).padStart(2, "0")}</td>
               <td className="px-3 py-4 font-bold">{standing.name}</td>
               <td
                 className={`px-3 py-4 text-right text-lg font-black ${
@@ -30,7 +30,7 @@ export function LeaderboardTable({ standings }: { standings: Standing[] }) {
                     ? "text-leaf"
                     : standing.points < 0
                       ? "text-rust"
-                      : "text-ink/50"
+                      : "text-concrete"
                 }`}
               >
                 {signed(standing.points)}
@@ -44,7 +44,7 @@ export function LeaderboardTable({ standings }: { standings: Standing[] }) {
         </tbody>
       </table>
       {standings.length === 0 && (
-        <p className="py-10 text-center text-ink/60">Chưa có người chơi.</p>
+        <p className="py-10 text-center text-concrete">NO PLAYER DATA</p>
       )}
     </div>
   );

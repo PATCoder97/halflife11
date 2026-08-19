@@ -13,7 +13,7 @@ export default async function LeaderboardPage() {
       <div>
         <Badge>All-time</Badge>
         <h1 className="mt-4 font-serif text-5xl font-black">Bảng xếp hạng</h1>
-        <p className="mt-2 text-ink/65">Điểm, thắng thua và tỷ lệ thắng trong toàn bộ lịch sử.</p>
+        <p className="mt-2 text-concrete">Điểm, thắng thua và tỷ lệ thắng trong toàn bộ lịch sử.</p>
       </div>
       <Card><LeaderboardTable standings={standings} /></Card>
     </div>

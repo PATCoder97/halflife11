@@ -1,11 +1,16 @@
+@import "@fontsource/barlow-condensed/600.css";
+@import "@fontsource/barlow-condensed/700.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/600.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  color: #17251c;
-  background: #f5f0df;
-  font-family: "Avenir Next", "Trebuchet MS", sans-serif;
+  color: #d8d3c2;
+  background: #080a08;
+  font-family: "IBM Plex Mono", monospace;
 }
 
 * { box-sizing: border-box; }
@@ -14,21 +19,52 @@ body {
   min-height: 100vh;
   margin: 0;
   background:
-    radial-gradient(circle at 12% 10%, rgba(219, 232, 143, 0.55), transparent 26rem),
-    radial-gradient(circle at 92% 35%, rgba(184, 75, 47, 0.12), transparent 24rem),
-    #f5f0df;
+    linear-gradient(rgba(255, 106, 0, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 106, 0, 0.025) 1px, transparent 1px),
+    radial-gradient(circle at 12% 5%, rgba(255, 106, 0, 0.13), transparent 28rem),
+    radial-gradient(circle at 90% 70%, rgba(83, 91, 72, 0.12), transparent 32rem),
+    #080a08;
+  background-size: 42px 42px, 42px 42px, auto, auto, auto;
+  color: #d8d3c2;
 }
 
 body::before {
   position: fixed;
   inset: 0;
-  z-index: -1;
+  z-index: 50;
   content: "";
-  opacity: 0.18;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.7' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.16'/%3E%3C/svg%3E");
+  opacity: 0.09;
+  background: repeating-linear-gradient(0deg, transparent 0, transparent 3px, rgba(216, 211, 194, 0.12) 4px);
   pointer-events: none;
 }
 
-input, select { font: inherit; }
+body::after {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  content: "";
+  opacity: 0.28;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.18'/%3E%3C/svg%3E");
+  pointer-events: none;
+}
 
-::selection { background: #dbe88f; color: #17251c; }
+main > * {
+  animation: system-boot 480ms cubic-bezier(.2,.8,.2,1) both;
+}
+
+@keyframes system-boot {
+  from { opacity: 0; transform: translateY(10px); filter: blur(2px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+.hazard-stripe {
+  background: repeating-linear-gradient(-55deg, #ff6a00 0 9px, #141714 9px 18px);
+}
+
+.hud-corners {
+  clip-path: polygon(0 12px, 12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
+}
+
+input, select { color-scheme: dark; font: inherit; }
+
+::selection { background: #ff6a00; color: #080a08; }

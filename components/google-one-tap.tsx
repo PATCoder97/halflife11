@@ -102,7 +102,7 @@ export function GoogleOneTap({ clientId }: { clientId: string }) {
         onReady={initialize}
       />
       <div ref={buttonRef} className={loading ? "pointer-events-none opacity-60" : ""} />
-      {loading && <p className="text-sm font-bold text-ink/55">Đang xác minh tài khoản...</p>}
+      {loading && <p className="text-xs font-bold uppercase tracking-wider text-concrete">Đang xác minh tài khoản...</p>}
       {error && <p className="text-sm font-bold text-rust">{error}</p>}
     </div>
   );

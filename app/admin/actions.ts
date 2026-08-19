@@ -23,6 +23,11 @@ function requiredString(formData: FormData, key: string) {
   return value.trim();
 }
 
+function optionalString(formData: FormData, key: string) {
+  const value = formData.get(key);
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
 function revalidateScoreViews(sessionId?: string) {
   revalidatePath("/");
   revalidatePath("/leaderboard");
@@ -35,6 +40,31 @@ export async function createPlayer(formData: FormData) {
   await requireAdmin();
   const name = requiredString(formData, "name");
   await prisma.player.create({ data: { name } });
+  revalidateScoreViews();
+}
+
+export async function togglePlayerActive(formData: FormData) {
+  await requireAdmin();
+  const playerId = requiredString(formData, "playerId");
+  const player = await prisma.player.findUnique({ where: { id: playerId } });
+  if (!player) throw new Error("Không tìm thấy người chơi");
+  await prisma.player.update({ where: { id: playerId }, data: { active: !player.active } });
+  revalidateScoreViews();
+}
+
+export async function createWeapon(formData: FormData) {
+  await requireAdmin();
+  const name = requiredString(formData, "name");
+  await prisma.weapon.create({ data: { name } });
+  revalidateScoreViews();
+}
+
+export async function toggleWeaponActive(formData: FormData) {
+  await requireAdmin();
+  const weaponId = requiredString(formData, "weaponId");
+  const weapon = await prisma.weapon.findUnique({ where: { id: weaponId } });
+  if (!weapon) throw new Error("Không tìm thấy súng");
+  await prisma.weapon.update({ where: { id: weaponId }, data: { active: !weapon.active } });
   revalidateScoreViews();
 }
 
@@ -52,6 +82,34 @@ export async function createGameSession(formData: FormData) {
   revalidateScoreViews();
 }
 
+export async function closeCurrentSession() {
+  await requireAdmin();
+  await prisma.gameSession.updateMany({
+    where: { isCurrent: true },
+    data: { isCurrent: false, endedAt: new Date() },
+  });
+  revalidateScoreViews();
+}
+
+export async function setCurrentSession(formData: FormData) {
+  await requireAdmin();
+  const gameSessionId = requiredString(formData, "gameSessionId");
+
+  await prisma.$transaction(async (tx) => {
+    const target = await tx.gameSession.findUnique({ where: { id: gameSessionId } });
+    if (!target) throw new Error("Không tìm thấy session");
+    await tx.gameSession.updateMany({
+      where: { isCurrent: true },
+      data: { isCurrent: false, endedAt: new Date() },
+    });
+    await tx.gameSession.update({
+      where: { id: gameSessionId },
+      data: { isCurrent: true, endedAt: null },
+    });
+  });
+  revalidateScoreViews(gameSessionId);
+}
+
 export async function recordMatch(formData: FormData) {
   await requireAdmin();
   const gameSessionId = requiredString(formData, "gameSessionId");
@@ -66,12 +124,20 @@ export async function recordMatch(formData: FormData) {
     requiredString(formData, "teamB1"),
     requiredString(formData, "teamB2"),
   ];
+  const weapons = [
+    optionalString(formData, "weaponA1"),
+    optionalString(formData, "weaponA2"),
+    optionalString(formData, "weaponB1"),
+    optionalString(formData, "weaponB2"),
+  ];
   validateDoublesMatch(teamA, teamB);
 
   await prisma.$transaction(async (tx) => {
-    const [session, playerCount, lastMatch] = await Promise.all([
+    const selectedWeaponIds = weapons.filter((id): id is string => Boolean(id));
+    const [session, playerCount, weaponCount, lastMatch] = await Promise.all([
       tx.gameSession.findUnique({ where: { id: gameSessionId }, select: { id: true } }),
       tx.player.count({ where: { id: { in: [...teamA, ...teamB] } } }),
+      tx.weapon.count({ where: { id: { in: selectedWeaponIds }, active: true } }),
       tx.match.findFirst({
         where: { gameSessionId },
         orderBy: { sequence: "desc" },
@@ -81,6 +147,7 @@ export async function recordMatch(formData: FormData) {
 
     if (!session) throw new Error("Không tìm thấy session");
     if (playerCount !== 4) throw new Error("Có người chơi không tồn tại");
+    if (weaponCount !== new Set(selectedWeaponIds).size) throw new Error("Có súng không tồn tại hoặc đã bị khóa");
 
     await tx.match.create({
       data: {
@@ -88,13 +155,15 @@ export async function recordMatch(formData: FormData) {
         sequence: (lastMatch?.sequence ?? 0) + 1,
         matchPlayers: {
           create: [
-            ...teamA.map((playerId) => ({
+            ...teamA.map((playerId, index) => ({
               playerId,
+              weaponId: weapons[index],
               team: Team.A,
               result: resultForTeam("A", winner) as MatchResult,
             })),
-            ...teamB.map((playerId) => ({
+            ...teamB.map((playerId, index) => ({
               playerId,
+              weaponId: weapons[index + 2],
               team: Team.B,
               result: resultForTeam("B", winner) as MatchResult,
             })),

@@ -59,7 +59,7 @@ export async function getSession(sessionId: string) {
         orderBy: { sequence: "asc" },
         include: {
           matchPlayers: {
-            include: { player: true },
+            include: { player: true, weapon: true },
             orderBy: [{ team: "asc" }, { player: { name: "asc" } }],
           },
         },

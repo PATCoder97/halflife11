@@ -29,7 +29,7 @@ export default async function WaterPage({ searchParams }: Props) {
       <div>
         <Badge>1 điểm = 1 chai</Badge>
         <h1 className="mt-4 font-serif text-5xl font-black">Tiền nước</h1>
-        <p className="mt-2 max-w-2xl text-ink/65">
+        <p className="mt-2 max-w-2xl text-concrete">
           Balance được tính trực tiếp từ kết quả trận. Không có cột điểm hay nợ nước chỉnh tay.
         </p>
       </div>
@@ -37,24 +37,24 @@ export default async function WaterPage({ searchParams }: Props) {
       <div className="flex flex-wrap gap-2">
         <Link
           href={selectedSessionId ? `/water?sessionId=${selectedSessionId}` : "/water"}
-          className={cn("rounded-full px-5 py-2.5 text-sm font-black", !allTime ? "bg-ink text-cream" : "bg-white")}
+          className={cn("hud-corners border px-5 py-2.5 text-xs font-black uppercase tracking-wider", !allTime ? "border-leaf bg-leaf text-ink" : "border-cream/15 bg-panel text-concrete")}
         >
           Current session
         </Link>
         <Link
           href="/water?scope=all"
-          className={cn("rounded-full px-5 py-2.5 text-sm font-black", allTime ? "bg-ink text-cream" : "bg-white")}
+          className={cn("hud-corners border px-5 py-2.5 text-xs font-black uppercase tracking-wider", allTime ? "border-leaf bg-leaf text-ink" : "border-cream/15 bg-panel text-concrete")}
         >
           All-time
         </Link>
         {!allTime && sessions.length > 1 && (
           <details className="relative">
-            <summary className="cursor-pointer list-none rounded-full bg-white px-5 py-2.5 text-sm font-black">
+            <summary className="hud-corners cursor-pointer list-none border border-cream/15 bg-panel px-5 py-2.5 text-xs font-black uppercase tracking-wider text-concrete">
               {selectedSession?.name ?? "Chọn session"}
             </summary>
-            <div className="absolute left-0 top-12 z-20 min-w-64 rounded-2xl border border-ink/10 bg-white p-2 shadow-card">
+            <div className="absolute left-0 top-12 z-20 min-w-64 border border-leaf/30 bg-panel p-2 shadow-card">
               {sessions.map((session) => (
-                <Link key={session.id} href={`/water?sessionId=${session.id}`} className="block rounded-xl px-4 py-3 font-bold hover:bg-cream">
+                <Link key={session.id} href={`/water?sessionId=${session.id}`} className="block border-b border-cream/10 px-4 py-3 text-xs font-bold uppercase tracking-wider hover:bg-leaf hover:text-ink">
                   {session.name}
                 </Link>
               ))}

@@ -32,28 +32,28 @@ export function WaterSummary({
     <div className="space-y-6">
       {!compact && (
         <div className="grid gap-4 md:grid-cols-2">
-          <Card className="bg-leaf text-white">
+          <Card className="border-leaf/50 bg-leaf/10 text-cream shadow-glow">
             <p className="mb-5 text-xs font-extrabold uppercase tracking-[0.18em] text-lime">Người được nhận</p>
             <div className="space-y-3">
               {creditors.map((item) => (
-                <div key={item.playerId} className="flex items-center justify-between border-b border-white/15 pb-3 last:border-0">
+                <div key={item.playerId} className="flex items-center justify-between border-b border-leaf/20 pb-3 last:border-0">
                   <span className="font-bold">{item.name}</span>
                   <span className="font-serif text-2xl font-black">+{item.points} {unitName}</span>
                 </div>
               ))}
-              {creditors.length === 0 && <p className="text-white/70">Không có khoản phải nhận.</p>}
+              {creditors.length === 0 && <p className="text-concrete">Không có khoản phải nhận.</p>}
             </div>
           </Card>
-          <Card className="bg-rust text-white">
+          <Card className="border-rust/50 bg-rust/10 text-cream">
             <p className="mb-5 text-xs font-extrabold uppercase tracking-[0.18em] text-cream">Người đang nợ</p>
             <div className="space-y-3">
               {debtors.map((item) => (
-                <div key={item.playerId} className="flex items-center justify-between border-b border-white/15 pb-3 last:border-0">
+                <div key={item.playerId} className="flex items-center justify-between border-b border-rust/20 pb-3 last:border-0">
                   <span className="font-bold">{item.name}</span>
                   <span className="font-serif text-2xl font-black">{signed(item.points)} {unitName}</span>
                 </div>
               ))}
-              {debtors.length === 0 && <p className="text-white/70">Không có khoản phải trả.</p>}
+              {debtors.length === 0 && <p className="text-concrete">Không có khoản phải trả.</p>}
             </div>
           </Card>
         </div>
@@ -65,7 +65,7 @@ export function WaterSummary({
             <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-leaf">Cần thanh toán</p>
             <h2 className="mt-1 font-serif text-2xl font-black">Ai trả ai?</h2>
           </div>
-          <div className="flex items-center gap-2 rounded-full bg-cream px-4 py-2 text-sm font-bold">
+          <div className="hud-corners flex items-center gap-2 border border-leaf/30 bg-leaf/10 px-4 py-2 text-xs font-bold uppercase tracking-wider text-leaf">
             <Droplets className="h-4 w-4 text-leaf" /> Tổng {total} {unitName}
           </div>
         </div>
@@ -73,17 +73,17 @@ export function WaterSummary({
           {settlement.map((item, index) => (
             <div
               key={`${item.from}-${item.to}-${index}`}
-              className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-2xl bg-cream/75 p-4"
+              className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 border-l-2 border-leaf bg-black/30 p-4"
             >
               <span className="font-black text-rust">{item.fromName}</span>
-              <span className="flex items-center gap-2 text-sm font-bold text-ink/65">
+              <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-concrete">
                 {item.amount} {unitName} <ArrowRight className="h-4 w-4" />
               </span>
               <span className="text-right font-black text-leaf">{item.toName}</span>
             </div>
           ))}
           {settlement.length === 0 && (
-            <div className="flex items-center gap-3 rounded-2xl bg-lime/30 p-5 font-bold text-leaf">
+            <div className="flex items-center gap-3 border border-leaf/30 bg-leaf/10 p-5 font-bold text-leaf">
               <CheckCircle2 className="h-5 w-5" /> Tất cả đã cân bằng.
             </div>
           )}
