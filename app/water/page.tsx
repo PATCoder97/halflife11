@@ -52,7 +52,7 @@ export default async function WaterPage({ searchParams }: Props) {
             <summary className="hud-corners cursor-pointer list-none border border-cream/15 bg-panel px-5 py-2.5 text-xs font-black uppercase tracking-wider text-concrete">
               {selectedSession?.name ?? "Chọn session"}
             </summary>
-            <div className="absolute left-0 top-12 z-20 min-w-64 border border-leaf/30 bg-panel p-2 shadow-card">
+            <div className="hud-corners absolute left-0 top-12 z-20 min-w-64 border border-leaf/30 bg-panel p-2 shadow-card">
               {sessions.map((session) => (
                 <Link key={session.id} href={`/water?sessionId=${session.id}`} className="block border-b border-cream/10 px-4 py-3 text-xs font-bold uppercase tracking-wider hover:bg-leaf hover:text-ink">
                   {session.name}

@@ -3,7 +3,7 @@ export type ResultValue = "WIN" | "LOSS";
 export type ScoreRow = {
   matchId: string;
   playerId: string;
-  result: ResultValue;
+  result: ResultValue | null;
 };
 
 export type PlayerSeed = {
@@ -38,6 +38,7 @@ export function deriveStandings(players: PlayerSeed[], rows: ScoreRow[]): Standi
   );
 
   for (const row of rows) {
+    if (row.result === null) continue;
     const standing = standings.get(row.playerId);
     if (!standing) continue;
 

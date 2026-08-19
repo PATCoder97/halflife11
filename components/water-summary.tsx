@@ -73,7 +73,7 @@ export function WaterSummary({
           {settlement.map((item, index) => (
             <div
               key={`${item.from}-${item.to}-${index}`}
-              className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 border-l-2 border-leaf bg-black/30 p-4"
+              className="hud-corners grid grid-cols-[1fr_auto_1fr] items-center gap-3 border border-leaf/20 border-l-2 border-l-leaf bg-black/30 p-4"
             >
               <span className="font-black text-rust">{item.fromName}</span>
               <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-concrete">
@@ -83,7 +83,7 @@ export function WaterSummary({
             </div>
           ))}
           {settlement.length === 0 && (
-            <div className="flex items-center gap-3 border border-leaf/30 bg-leaf/10 p-5 font-bold text-leaf">
+            <div className="hud-corners flex items-center gap-3 border border-leaf/30 bg-leaf/10 p-5 font-bold text-leaf">
               <CheckCircle2 className="h-5 w-5" /> Tất cả đã cân bằng.
             </div>
           )}

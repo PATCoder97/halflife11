@@ -1,11 +1,12 @@
 "use server";
 
-import { MatchResult, Team } from "@prisma/client";
+import { Team } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
 
 import { authOptions, isAdminEmail } from "@/lib/auth";
-import { resultForTeam, validateDoublesMatch } from "@/lib/match-validation";
+import { generateShootingSchedule } from "@/lib/match-generator";
+import { resultForTeam } from "@/lib/match-validation";
 import { prisma } from "@/lib/prisma";
 
 async function requireAdmin() {
@@ -23,16 +24,13 @@ function requiredString(formData: FormData, key: string) {
   return value.trim();
 }
 
-function optionalString(formData: FormData, key: string) {
-  const value = formData.get(key);
-  return typeof value === "string" && value.trim() ? value.trim() : undefined;
-}
-
 function revalidateScoreViews(sessionId?: string) {
   revalidatePath("/");
   revalidatePath("/leaderboard");
   revalidatePath("/water");
   revalidatePath("/admin");
+  revalidatePath("/admin/sessions");
+  revalidatePath("/admin/sessions/history");
   if (sessionId) revalidatePath(`/sessions/${sessionId}`);
 }
 
@@ -71,14 +69,65 @@ export async function toggleWeaponActive(formData: FormData) {
 export async function createGameSession(formData: FormData) {
   await requireAdmin();
   const name = requiredString(formData, "name");
+  const matchCount = Number(requiredString(formData, "matchCount"));
+  const playerIds = [...new Set(formData.getAll("playerIds").filter(
+    (value): value is string => typeof value === "string" && Boolean(value),
+  ))];
+  const weaponIds = [...new Set(formData.getAll("weaponIds").filter(
+    (value): value is string => typeof value === "string" && Boolean(value),
+  ))];
 
-  await prisma.$transaction([
-    prisma.gameSession.updateMany({
+  if (!Number.isInteger(matchCount) || matchCount < 1 || matchCount > 100) {
+    throw new Error("Số trận phải từ 1 đến 100");
+  }
+  if (playerIds.length < 4) throw new Error("Phải chọn ít nhất 4 người chơi");
+  if (weaponIds.length < 1) throw new Error("Phải chọn ít nhất 1 súng");
+
+  const [validPlayers, validWeapons] = await Promise.all([
+    prisma.player.findMany({
+      where: { id: { in: playerIds }, active: true },
+      select: { id: true },
+    }),
+    prisma.weapon.findMany({
+      where: { id: { in: weaponIds }, active: true },
+      select: { id: true },
+    }),
+  ]);
+  if (validPlayers.length !== playerIds.length) {
+    throw new Error("Có người chơi không tồn tại hoặc đã bị khóa");
+  }
+  if (validWeapons.length !== weaponIds.length) {
+    throw new Error("Có súng không tồn tại hoặc đã bị khóa");
+  }
+
+  const schedule = generateShootingSchedule(playerIds, weaponIds, matchCount);
+  await prisma.$transaction(async (tx) => {
+    await tx.gameSession.updateMany({
       where: { isCurrent: true },
       data: { isCurrent: false, endedAt: new Date() },
-    }),
-    prisma.gameSession.create({ data: { name, isCurrent: true } }),
-  ]);
+    });
+    await tx.gameSession.create({
+      data: {
+        name,
+        isCurrent: true,
+        plannedMatchCount: matchCount,
+        players: { create: playerIds.map((playerId) => ({ playerId })) },
+        weapons: { create: weaponIds.map((weaponId) => ({ weaponId })) },
+        matches: {
+          create: schedule.map((match, index) => ({
+            sequence: index + 1,
+            weaponId: match.weaponId,
+            matchPlayers: {
+              create: [
+                ...match.teamA.map((playerId) => ({ playerId, team: Team.A })),
+                ...match.teamB.map((playerId) => ({ playerId, team: Team.B })),
+              ],
+            },
+          })),
+        },
+      },
+    });
+  });
   revalidateScoreViews();
 }
 
@@ -110,72 +159,6 @@ export async function setCurrentSession(formData: FormData) {
   revalidateScoreViews(gameSessionId);
 }
 
-export async function recordMatch(formData: FormData) {
-  await requireAdmin();
-  const gameSessionId = requiredString(formData, "gameSessionId");
-  const winner = requiredString(formData, "winner") as Team;
-  if (winner !== Team.A && winner !== Team.B) throw new Error("Đội thắng không hợp lệ");
-
-  const teamA = [
-    requiredString(formData, "teamA1"),
-    requiredString(formData, "teamA2"),
-  ];
-  const teamB = [
-    requiredString(formData, "teamB1"),
-    requiredString(formData, "teamB2"),
-  ];
-  const weapons = [
-    optionalString(formData, "weaponA1"),
-    optionalString(formData, "weaponA2"),
-    optionalString(formData, "weaponB1"),
-    optionalString(formData, "weaponB2"),
-  ];
-  validateDoublesMatch(teamA, teamB);
-
-  await prisma.$transaction(async (tx) => {
-    const selectedWeaponIds = weapons.filter((id): id is string => Boolean(id));
-    const [session, playerCount, weaponCount, lastMatch] = await Promise.all([
-      tx.gameSession.findUnique({ where: { id: gameSessionId }, select: { id: true } }),
-      tx.player.count({ where: { id: { in: [...teamA, ...teamB] } } }),
-      tx.weapon.count({ where: { id: { in: selectedWeaponIds }, active: true } }),
-      tx.match.findFirst({
-        where: { gameSessionId },
-        orderBy: { sequence: "desc" },
-        select: { sequence: true },
-      }),
-    ]);
-
-    if (!session) throw new Error("Không tìm thấy session");
-    if (playerCount !== 4) throw new Error("Có người chơi không tồn tại");
-    if (weaponCount !== new Set(selectedWeaponIds).size) throw new Error("Có súng không tồn tại hoặc đã bị khóa");
-
-    await tx.match.create({
-      data: {
-        gameSessionId,
-        sequence: (lastMatch?.sequence ?? 0) + 1,
-        matchPlayers: {
-          create: [
-            ...teamA.map((playerId, index) => ({
-              playerId,
-              weaponId: weapons[index],
-              team: Team.A,
-              result: resultForTeam("A", winner) as MatchResult,
-            })),
-            ...teamB.map((playerId, index) => ({
-              playerId,
-              weaponId: weapons[index + 2],
-              team: Team.B,
-              result: resultForTeam("B", winner) as MatchResult,
-            })),
-          ],
-        },
-      },
-    });
-  });
-
-  revalidateScoreViews(gameSessionId);
-}
-
 export async function updateMatchResult(formData: FormData) {
   await requireAdmin();
   const matchId = requiredString(formData, "matchId");
@@ -197,15 +180,5 @@ export async function updateMatchResult(formData: FormData) {
     ),
   );
 
-  revalidateScoreViews(match.gameSessionId);
-}
-
-export async function deleteMatch(formData: FormData) {
-  await requireAdmin();
-  const matchId = requiredString(formData, "matchId");
-  const match = await prisma.match.delete({
-    where: { id: matchId },
-    select: { gameSessionId: true },
-  });
   revalidateScoreViews(match.gameSessionId);
 }

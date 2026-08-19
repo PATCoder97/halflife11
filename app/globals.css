@@ -2,6 +2,7 @@
 @import "@fontsource/barlow-condensed/700.css";
 @import "@fontsource/ibm-plex-mono/400.css";
 @import "@fontsource/ibm-plex-mono/600.css";
+@import "perfect-scrollbar/css/perfect-scrollbar.css";
 
 @tailwind base;
 @tailwind components;
@@ -62,9 +63,39 @@ main > * {
 }
 
 .hud-corners {
-  clip-path: polygon(0 12px, 12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
+  position: relative;
+  border-radius: 12px 0 12px 0;
+  corner-shape: bevel;
 }
 
 input, select { color-scheme: dark; font: inherit; }
 
 ::selection { background: #ff6a00; color: #080a08; }
+
+.perfect-scroll {
+  --ps-track: rgba(216, 211, 194, 0.055);
+  --ps-thumb: rgba(255, 106, 0, 0.58);
+}
+
+.perfect-scroll .ps__rail-y {
+  width: 8px;
+  margin: 4px 3px;
+  border-left: 1px solid rgba(255, 106, 0, 0.12);
+  background: var(--ps-track) !important;
+  opacity: 1;
+}
+
+.perfect-scroll .ps__thumb-y {
+  right: 1px;
+  width: 4px;
+  min-height: 28px;
+  border-radius: 0;
+  background: var(--ps-thumb) !important;
+  box-shadow: 0 0 8px rgba(255, 106, 0, 0.2);
+}
+
+.perfect-scroll .ps__rail-y:hover .ps__thumb-y,
+.perfect-scroll .ps__rail-y.ps--clicking .ps__thumb-y {
+  width: 6px;
+  background: #ff6a00 !important;
+}

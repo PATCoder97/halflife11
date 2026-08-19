@@ -30,6 +30,7 @@ model Player {
   createdAt        DateTime            @default(now())
   updatedAt        DateTime            @updatedAt
   matchPlayers     MatchPlayer[]
+  gameSessions     GameSessionPlayer[]
   outgoingPayments SettlementPayment[] @relation("PaymentFrom")
   incomingPayments SettlementPayment[] @relation("PaymentTo")
 }
@@ -40,52 +41,76 @@ model Weapon {
   active       Boolean       @default(true)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
-  matchPlayers MatchPlayer[]
+  matches      Match[]
+  gameSessions GameSessionWeapon[]
 }
 
 model GameSession {
-  id        String   @id @default(cuid())
-  name      String
-  startedAt DateTime @default(now())
-  endedAt   DateTime?
-  isCurrent Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  matches   Match[]
+  id                String              @id @default(cuid())
+  name              String
+  plannedMatchCount Int                 @default(0)
+  startedAt         DateTime            @default(now())
+  endedAt           DateTime?
+  isCurrent         Boolean             @default(false)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  matches           Match[]
+  players           GameSessionPlayer[]
+  weapons           GameSessionWeapon[]
 
   @@index([isCurrent, startedAt])
+}
+
+model GameSessionPlayer {
+  gameSessionId String
+  playerId      String
+  gameSession   GameSession @relation(fields: [gameSessionId], references: [id], onDelete: Cascade)
+  player        Player      @relation(fields: [playerId], references: [id], onDelete: Restrict)
+
+  @@id([gameSessionId, playerId])
+  @@index([playerId])
+}
+
+model GameSessionWeapon {
+  gameSessionId String
+  weaponId      String
+  gameSession   GameSession @relation(fields: [gameSessionId], references: [id], onDelete: Cascade)
+  weapon        Weapon      @relation(fields: [weaponId], references: [id], onDelete: Restrict)
+
+  @@id([gameSessionId, weaponId])
+  @@index([weaponId])
 }
 
 model Match {
   id            String        @id @default(cuid())
   gameSessionId String
+  weaponId      String?
   sequence      Int
   playedAt      DateTime      @default(now())
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   gameSession   GameSession   @relation(fields: [gameSessionId], references: [id], onDelete: Cascade)
+  weapon        Weapon?       @relation(fields: [weaponId], references: [id], onDelete: SetNull)
   matchPlayers  MatchPlayer[]
 
   @@unique([gameSessionId, sequence])
   @@index([playedAt])
+  @@index([weaponId])
 }
 
 model MatchPlayer {
   id        String      @id @default(cuid())
   matchId   String
   playerId  String
-  weaponId  String?
   team      Team
-  result    MatchResult
+  result    MatchResult?
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
   match     Match       @relation(fields: [matchId], references: [id], onDelete: Cascade)
   player    Player      @relation(fields: [playerId], references: [id], onDelete: Restrict)
-  weapon    Weapon?     @relation(fields: [weaponId], references: [id], onDelete: SetNull)
 
   @@unique([matchId, playerId])
   @@index([playerId, result])
-  @@index([weaponId])
 }
 
 model SettlementPeriod {

@@ -9,14 +9,19 @@ export type ScoreScope =
 export async function getStandings(scope: ScoreScope) {
   const [players, resultRows] = await Promise.all([
     prisma.player.findMany({
+      where: scope.type === "SESSION"
+        ? { gameSessions: { some: { gameSessionId: scope.sessionId } } }
+        : undefined,
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),
     prisma.matchPlayer.findMany({
-      where:
-        scope.type === "SESSION"
+      where: {
+        result: { not: null },
+        ...(scope.type === "SESSION"
           ? { match: { gameSessionId: scope.sessionId } }
-          : undefined,
+          : {}),
+      },
       select: { matchId: true, playerId: true, result: true },
     }),
   ]);
@@ -55,11 +60,14 @@ export async function getSession(sessionId: string) {
   return prisma.gameSession.findUnique({
     where: { id: sessionId },
     include: {
+      players: { include: { player: true } },
+      weapons: { include: { weapon: true } },
       matches: {
         orderBy: { sequence: "asc" },
         include: {
+          weapon: true,
           matchPlayers: {
-            include: { player: true, weapon: true },
+            include: { player: true },
             orderBy: [{ team: "asc" }, { player: { name: "asc" } }],
           },
         },
