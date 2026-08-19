@@ -1,0 +1,151 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Team {
+  A
+  B
+}
+
+enum MatchResult {
+  WIN
+  LOSS
+}
+
+enum SettlementPeriodStatus {
+  OPEN
+  CLOSED
+  SETTLED
+}
+
+model Player {
+  id               String              @id @default(cuid())
+  name             String              @unique
+  active           Boolean             @default(true)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  matchPlayers     MatchPlayer[]
+  outgoingPayments SettlementPayment[] @relation("PaymentFrom")
+  incomingPayments SettlementPayment[] @relation("PaymentTo")
+}
+
+model GameSession {
+  id        String   @id @default(cuid())
+  name      String
+  startedAt DateTime @default(now())
+  endedAt   DateTime?
+  isCurrent Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  matches   Match[]
+
+  @@index([isCurrent, startedAt])
+}
+
+model Match {
+  id            String        @id @default(cuid())
+  gameSessionId String
+  sequence      Int
+  playedAt      DateTime      @default(now())
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  gameSession   GameSession   @relation(fields: [gameSessionId], references: [id], onDelete: Cascade)
+  matchPlayers  MatchPlayer[]
+
+  @@unique([gameSessionId, sequence])
+  @@index([playedAt])
+}
+
+model MatchPlayer {
+  id        String      @id @default(cuid())
+  matchId   String
+  playerId  String
+  team      Team
+  result    MatchResult
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  match     Match       @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  player    Player      @relation(fields: [playerId], references: [id], onDelete: Restrict)
+
+  @@unique([matchId, playerId])
+  @@index([playerId, result])
+}
+
+model SettlementPeriod {
+  id        String                 @id @default(cuid())
+  name      String
+  startedAt DateTime
+  endedAt   DateTime?
+  status    SettlementPeriodStatus @default(OPEN)
+  createdAt DateTime               @default(now())
+  updatedAt DateTime               @updatedAt
+  payments  SettlementPayment[]
+}
+
+model SettlementPayment {
+  id                 String           @id @default(cuid())
+  settlementPeriodId String
+  fromPlayerId       String
+  toPlayerId         String
+  amount             Int
+  paid               Boolean          @default(false)
+  paidAt             DateTime?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  settlementPeriod   SettlementPeriod @relation(fields: [settlementPeriodId], references: [id], onDelete: Cascade)
+  fromPlayer         Player           @relation("PaymentFrom", fields: [fromPlayerId], references: [id], onDelete: Restrict)
+  toPlayer           Player           @relation("PaymentTo", fields: [toPlayerId], references: [id], onDelete: Restrict)
+
+  @@index([settlementPeriodId, paid])
+  @@index([fromPlayerId])
+  @@index([toPlayerId])
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
