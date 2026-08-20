@@ -1,4 +1,4 @@
-import { Droplets, History } from "lucide-react";
+import { Droplets, HandCoins, History } from "lucide-react";
 import { getServerSession } from "next-auth";
 
 import { BalanceTable } from "@/components/balance-table";
@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { WaterSummary } from "@/components/water-summary";
 import { WaterPaymentForm } from "@/components/water-payment-form";
+import { WaterDebtForm } from "@/components/water-debt-form";
 import { authOptions, isAdminEmail } from "@/lib/auth";
 import { getWaterData } from "@/lib/data";
 
@@ -20,6 +21,7 @@ export default async function LeaderboardPage() {
   const isAdmin = isAdminEmail(authSession?.user?.email);
   const debtors = water.standings.filter((item) => item.points < 0);
   const creditors = water.standings.filter((item) => item.points > 0);
+  const players = water.standings.map(({ playerId, name }) => ({ playerId, name }));
 
   return (
     <div className="space-y-10">
@@ -49,6 +51,18 @@ export default async function LeaderboardPage() {
               <div className="flex items-center gap-3">
                 <Droplets className="h-6 w-6 text-leaf" />
                 <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-leaf">Admin debt terminal</p>
+                  <h3 className="font-serif text-2xl font-black">Ghi nhận nợ nước</h3>
+                </div>
+              </div>
+              <WaterDebtForm players={players} />
+            </Card>
+          )}
+          {isAdmin && (
+            <Card className="border-leaf/30 bg-leaf/5">
+              <div className="flex items-center gap-3">
+                <Droplets className="h-6 w-6 text-leaf" />
+                <div>
                   <p className="text-[10px] font-black uppercase tracking-[0.2em] text-leaf">Admin payment terminal</p>
                   <h3 className="font-serif text-2xl font-black">Ghi nhận đã trả nước</h3>
                 </div>
@@ -61,6 +75,39 @@ export default async function LeaderboardPage() {
             </Card>
           )}
           <WaterSummary standings={water.standings} settlement={water.settlement} compact />
+          {water.debts.length > 0 && (
+            <Card>
+              <div className="mb-5 flex items-center gap-3">
+                <HandCoins className="h-5 w-5 text-rust" />
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-rust">External debt ledger</p>
+                  <h3 className="font-serif text-2xl font-black">Lịch sử nợ ngoài kèo</h3>
+                </div>
+              </div>
+              <div className="divide-y divide-cream/10">
+                {water.debts.map((debt) => (
+                  <div key={debt.id} className="grid gap-2 py-4 sm:grid-cols-[1fr_auto] sm:items-center">
+                    <div>
+                      <p className="font-bold">
+                        <span className="text-rust">{debt.fromName}</span>
+                        <span className="mx-2 text-concrete">nợ</span>
+                        <span className="text-leaf">{debt.toName}</span>
+                        <span className="ml-2">{debt.amount} chai nước</span>
+                      </p>
+                      {debt.note && <p className="mt-1 text-xs text-concrete">{debt.note}</p>}
+                    </div>
+                    <time className="text-[9px] font-bold uppercase tracking-wider text-concrete">
+                      {new Intl.DateTimeFormat("vi-VN", {
+                        dateStyle: "short",
+                        timeStyle: "short",
+                        timeZone: "Asia/Ho_Chi_Minh",
+                      }).format(debt.createdAt)}
+                    </time>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
           {water.payments.length > 0 && (
             <Card>
               <div className="mb-5 flex items-center gap-3">

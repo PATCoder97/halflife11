@@ -10,7 +10,11 @@ import { resultForTeam } from "@/lib/match-validation";
 import { prisma } from "@/lib/prisma";
 import { deriveStandings } from "@/lib/scoring";
 import { formatShootingPeriodName } from "@/lib/session-name";
-import { applyWaterPayments, validateWaterPayment } from "@/lib/water-balance";
+import {
+  applyWaterDebts,
+  applyWaterPayments,
+  validateWaterPayment,
+} from "@/lib/water-balance";
 
 async function requireAdmin() {
   const session = await getServerSession(authOptions);
@@ -75,6 +79,54 @@ export type WaterPaymentActionState = {
   success?: string;
 };
 
+export type WaterDebtActionState = WaterPaymentActionState;
+
+export async function recordWaterDebt(
+  _previousState: WaterDebtActionState,
+  formData: FormData,
+): Promise<WaterDebtActionState> {
+  try {
+    await requireAdmin();
+    const fromPlayerId = requiredString(formData, "fromPlayerId");
+    const toPlayerId = requiredString(formData, "toPlayerId");
+    const amount = Number(requiredString(formData, "amount"));
+    const noteValue = formData.get("note");
+    const note = typeof noteValue === "string" ? noteValue.trim() : "";
+
+    if (!Number.isInteger(amount) || amount <= 0) {
+      throw new Error("Số chai nợ phải là số nguyên dương");
+    }
+    if (fromPlayerId === toPlayerId) {
+      throw new Error("Người nợ và người được nhận phải khác nhau");
+    }
+    if (note.length > 280) throw new Error("Ghi chú tối đa 280 ký tự");
+
+    await prisma.$transaction(async (tx) => {
+      const players = await tx.player.findMany({
+        where: { id: { in: [fromPlayerId, toPlayerId] } },
+        select: { id: true },
+      });
+      if (players.length !== 2) throw new Error("Không tìm thấy người chơi");
+
+      await tx.waterDebt.create({
+        data: {
+          fromPlayerId,
+          toPlayerId,
+          amount,
+          note: note || null,
+        },
+      });
+    });
+
+    revalidateScoreViews();
+    return { success: `Đã ghi nhận nợ ${amount} chai nước` };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Không thể ghi nhận khoản nợ",
+    };
+  }
+}
+
 export async function recordWaterPayment(
   _previousState: WaterPaymentActionState,
   formData: FormData,
@@ -87,18 +139,24 @@ export async function recordWaterPayment(
     const payment = { fromPlayerId, toPlayerId, amount };
 
     await prisma.$transaction(async (tx) => {
-      const [players, resultRows, previousPayments] = await Promise.all([
+      const [players, resultRows, previousDebts, previousPayments] = await Promise.all([
         tx.player.findMany({ select: { id: true, name: true } }),
         tx.matchPlayer.findMany({
           where: { result: { not: null } },
           select: { matchId: true, playerId: true, result: true },
+        }),
+        tx.waterDebt.findMany({
+          select: { fromPlayerId: true, toPlayerId: true, amount: true },
         }),
         tx.waterPayment.findMany({
           select: { fromPlayerId: true, toPlayerId: true, amount: true },
         }),
       ]);
       const matchStandings = deriveStandings(players, resultRows);
-      const waterStandings = applyWaterPayments(matchStandings, previousPayments);
+      const waterStandings = applyWaterPayments(
+        applyWaterDebts(matchStandings, previousDebts),
+        previousPayments,
+      );
       validateWaterPayment(waterStandings, payment);
 
       await tx.waterPayment.create({ data: payment });

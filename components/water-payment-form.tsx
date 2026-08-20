@@ -23,7 +23,7 @@ type ComboboxOption = {
   label: string;
 };
 
-function HudCombobox({
+export function HudCombobox({
   name,
   value,
   placeholder,

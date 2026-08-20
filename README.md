@@ -9,6 +9,7 @@
 - Auth.js/NextAuth.js với Google OAuth; chỉ email trong `ADMIN_EMAILS` được đăng nhập.
 - Docker Compose chạy `app`, `postgres` và Caddy reverse proxy.
 - Điểm không được lưu trên `Player`. Mỗi `MatchPlayer.WIN` là `+1`, mỗi `LOSS` là `-1`; leaderboard và settlement luôn derive lại từ lịch sử trận.
+- Admin có thể nhập khoản `nợ ngoài kèo` vào ledger Tiền nước all-time. Khoản này không thay đổi điểm, thắng/thua hay bảng xếp hạng từ trận bắn.
 - Volume `postgres_data` giữ dữ liệu qua restart, rebuild và nâng cấp container.
 
 ## Chạy local

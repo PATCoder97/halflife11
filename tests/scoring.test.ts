@@ -8,7 +8,11 @@ import {
 import { deriveStandings, type ScoreRow } from "@/lib/scoring";
 import { formatShootingPeriodName } from "@/lib/session-name";
 import { calculateSettlement } from "@/lib/settlement";
-import { applyWaterPayments, validateWaterPayment } from "@/lib/water-balance";
+import {
+  applyWaterDebts,
+  applyWaterPayments,
+  validateWaterPayment,
+} from "@/lib/water-balance";
 
 const players = ["A", "B", "C", "D"].map((id) => ({ id, name: id }));
 
@@ -160,6 +164,20 @@ describe("shooting period name", () => {
 });
 
 describe("water payment ledger", () => {
+  it("adds an external debt without changing match-derived points", () => {
+    const standings = deriveStandings(players, []);
+    const adjusted = applyWaterDebts(standings, [
+      { fromPlayerId: "A", toPlayerId: "B", amount: 3 },
+    ]);
+    const balances = Object.fromEntries(adjusted.map((item) => [item.playerId, item.points]));
+
+    expect(balances).toMatchObject({ A: -3, B: 3, C: 0, D: 0 });
+    expect(standings.every((item) => item.points === 0)).toBe(true);
+    expect(calculateSettlement(
+      adjusted.map((item) => ({ playerId: item.playerId, balance: item.points })),
+    )).toEqual([{ from: "A", to: "B", amount: 3 }]);
+  });
+
   it("reduces the debtor and creditor balances without changing match records", () => {
     const standings = deriveStandings(players, [
       ...resultRows("m1", ["B", "C"], ["A", "D"]),

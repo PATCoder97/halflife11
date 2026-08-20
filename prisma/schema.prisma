@@ -24,25 +24,27 @@ enum SettlementPeriodStatus {
 }
 
 model Player {
-  id               String              @id @default(cuid())
-  name             String              @unique
-  active           Boolean             @default(true)
-  createdAt        DateTime            @default(now())
-  updatedAt        DateTime            @updatedAt
-  matchPlayers     MatchPlayer[]
-  gameSessions     GameSessionPlayer[]
-  outgoingPayments SettlementPayment[] @relation("PaymentFrom")
-  incomingPayments SettlementPayment[] @relation("PaymentTo")
+  id                    String              @id @default(cuid())
+  name                  String              @unique
+  active                Boolean             @default(true)
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  matchPlayers          MatchPlayer[]
+  gameSessions          GameSessionPlayer[]
+  outgoingPayments      SettlementPayment[] @relation("PaymentFrom")
+  incomingPayments      SettlementPayment[] @relation("PaymentTo")
+  waterDebtsOwed        WaterDebt[]         @relation("WaterDebtFrom")
+  waterDebtsReceivable  WaterDebt[]         @relation("WaterDebtTo")
   waterPaymentsSent     WaterPayment[]      @relation("WaterPaymentFrom")
   waterPaymentsReceived WaterPayment[]      @relation("WaterPaymentTo")
 }
 
 model Weapon {
-  id           String        @id @default(cuid())
-  name         String        @unique
-  active       Boolean       @default(true)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id           String              @id @default(cuid())
+  name         String              @unique
+  active       Boolean             @default(true)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
   matches      Match[]
   gameSessions GameSessionWeapon[]
 }
@@ -101,15 +103,15 @@ model Match {
 }
 
 model MatchPlayer {
-  id        String      @id @default(cuid())
+  id        String       @id @default(cuid())
   matchId   String
   playerId  String
   team      Team
   result    MatchResult?
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-  match     Match       @relation(fields: [matchId], references: [id], onDelete: Cascade)
-  player    Player      @relation(fields: [playerId], references: [id], onDelete: Restrict)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  match     Match        @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  player    Player       @relation(fields: [playerId], references: [id], onDelete: Restrict)
 
   @@unique([matchId, playerId])
   @@index([playerId, result])
@@ -153,6 +155,21 @@ model WaterPayment {
   createdAt    DateTime @default(now())
   fromPlayer   Player   @relation("WaterPaymentFrom", fields: [fromPlayerId], references: [id], onDelete: Restrict)
   toPlayer     Player   @relation("WaterPaymentTo", fields: [toPlayerId], references: [id], onDelete: Restrict)
+
+  @@index([createdAt])
+  @@index([fromPlayerId])
+  @@index([toPlayerId])
+}
+
+model WaterDebt {
+  id           String   @id @default(cuid())
+  fromPlayerId String
+  toPlayerId   String
+  amount       Int
+  note         String?
+  createdAt    DateTime @default(now())
+  fromPlayer   Player   @relation("WaterDebtFrom", fields: [fromPlayerId], references: [id], onDelete: Restrict)
+  toPlayer     Player   @relation("WaterDebtTo", fields: [toPlayerId], references: [id], onDelete: Restrict)
 
   @@index([createdAt])
   @@index([fromPlayerId])
