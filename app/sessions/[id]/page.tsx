@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { LeaderboardTable } from "@/components/leaderboard-table";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { VersusBadge } from "@/components/versus-badge";
 import { WaterSummary } from "@/components/water-summary";
 import { getSession, getStandings, getWaterData } from "@/lib/data";
 
@@ -50,14 +51,16 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
                   <p className="text-[10px] font-black uppercase tracking-[0.2em] text-concrete">Encounter // {String(match.sequence).padStart(2, "0")}</p>
                   <p className="text-xs font-black uppercase tracking-wider text-leaf">{match.weapon?.name ?? "Chưa gán súng"}</p>
                 </div>
-                <div className={`hud-corners border border-l-2 p-4 ${teamA[0]?.result === "WIN" ? "border-leaf/20 border-l-leaf bg-leaf/15 text-leaf" : "border-cream/10 border-l-cream/20 bg-black/30 text-concrete"}`}>
-                  <span className="font-black">{teamA.map((item) => item.player.name).join(" + ")}</span>
-                  <span className="float-right text-xs font-black">{pending ? "PENDING" : teamA[0]?.result}</span>
-                </div>
-                <p className="py-2 text-center text-[10px] font-black tracking-[0.25em] text-rust">VERSUS</p>
-                <div className={`hud-corners border border-l-2 p-4 ${teamB[0]?.result === "WIN" ? "border-leaf/20 border-l-leaf bg-leaf/15 text-leaf" : "border-cream/10 border-l-cream/20 bg-black/30 text-concrete"}`}>
-                  <span className="font-black">{teamB.map((item) => item.player.name).join(" + ")}</span>
-                  <span className="float-right text-xs font-black">{pending ? "PENDING" : teamB[0]?.result}</span>
+                <div className="matchup">
+                  <div className={`matchup__team matchup__team--left hud-corners border border-l-2 p-4 ${teamA[0]?.result === "WIN" ? "matchup__team--winner-left border-leaf/20 border-l-leaf text-leaf" : "border-cream/10 border-l-cream/20 bg-black/30 text-concrete"}`}>
+                    <span className="font-black">{teamA.map((item) => item.player.name).join(" + ")}</span>
+                    <span className="float-right text-xs font-black">{pending ? "PENDING" : teamA[0]?.result}</span>
+                  </div>
+                  <VersusBadge />
+                  <div className={`matchup__team matchup__team--right hud-corners border border-l-2 p-4 ${teamB[0]?.result === "WIN" ? "matchup__team--winner-right border-leaf/20 border-l-leaf text-leaf" : "border-cream/10 border-l-cream/20 bg-black/30 text-concrete"}`}>
+                    <span className="font-black">{teamB.map((item) => item.player.name).join(" + ")}</span>
+                    <span className="float-right text-xs font-black">{pending ? "PENDING" : teamB[0]?.result}</span>
+                  </div>
                 </div>
               </Card>
             );

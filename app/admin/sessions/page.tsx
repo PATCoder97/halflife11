@@ -6,6 +6,7 @@ import { PerfectScroll } from "@/components/perfect-scroll";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { VersusBadge } from "@/components/versus-badge";
 import { authOptions, isAdminEmail } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -180,30 +181,30 @@ export default async function SessionManagementPage() {
               const teamB = match.matchPlayers.filter((item) => item.team === "B");
               const winner = teamA[0]?.result === "WIN" ? "A" : teamB[0]?.result === "WIN" ? "B" : null;
               return (
-                <div key={match.id} className={`hud-corners grid gap-4 border p-4 lg:grid-cols-[8rem_1fr_auto] lg:items-center ${winner ? "border-cream/10 bg-black/20" : "border-leaf/30 bg-leaf/5"}`}>
+                <div key={match.id} className={`hud-corners grid gap-4 border p-4 lg:grid-cols-[9.5rem_minmax(0,1fr)_9.5rem] lg:items-center ${winner ? "border-cream/10 bg-black/20" : "border-leaf/30 bg-leaf/5"}`}>
                   <div>
                     <p className="text-[9px] font-black uppercase tracking-[0.18em] text-concrete">Encounter {String(match.sequence).padStart(2, "0")}</p>
                     <p className="mt-1 flex items-center gap-2 font-bold text-leaf"><Crosshair className="h-4 w-4" />{match.weapon?.name ?? "Chưa gán súng"}</p>
-                    <p className={`mt-1 text-[8px] font-black uppercase tracking-widest ${winner ? "text-concrete" : "text-rust"}`}>{winner ? `Đội ${winner} thắng` : "Chờ kết quả"}</p>
+                    <p className={`mt-1 text-[8px] font-black uppercase tracking-widest ${winner ? "text-concrete" : "text-rust"}`}>{winner ? `${winner === "A" ? "Terrorists" : "Counter-Terrorists"} thắng` : "Chờ kết quả"}</p>
                   </div>
-                  <div className="grid gap-2 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
-                    <div className={`hud-corners border border-l-2 p-3 ${winner === "A" ? "border-leaf/20 border-l-leaf bg-leaf/10 text-leaf" : "border-cream/10 border-l-cream/20 bg-black/20"}`}>
-                      <p className="text-[8px] font-black uppercase tracking-wider text-concrete">Alpha</p>
+                  <div className="matchup">
+                    <div className={`matchup__team matchup__team--left hud-corners border border-l-2 p-3 ${winner === "A" ? "matchup__team--winner-left border-leaf/20 border-l-leaf text-leaf" : "border-cream/10 border-l-cream/20 bg-black/20"}`}>
+                      <p className="text-[8px] font-black uppercase tracking-wider text-concrete">Terrorists</p>
                       <p className="mt-1 font-bold">{teamA.map((item) => item.player.name).join(" + ")}</p>
                     </div>
-                    <span className="text-center font-serif font-black text-rust">VS</span>
-                    <div className={`hud-corners border border-l-2 p-3 ${winner === "B" ? "border-leaf/20 border-l-leaf bg-leaf/10 text-leaf" : "border-cream/10 border-l-cream/20 bg-black/20"}`}>
-                      <p className="text-[8px] font-black uppercase tracking-wider text-concrete">Bravo</p>
+                    <VersusBadge />
+                    <div className={`matchup__team matchup__team--right hud-corners border border-l-2 p-3 ${winner === "B" ? "matchup__team--winner-right border-leaf/20 border-l-leaf text-leaf" : "border-cream/10 border-l-cream/20 bg-black/20"}`}>
+                      <p className="text-[8px] font-black uppercase tracking-wider text-concrete">Counter-Terrorists</p>
                       <p className="mt-1 font-bold">{teamB.map((item) => item.player.name).join(" + ")}</p>
                     </div>
                   </div>
                   <div className="flex gap-2 lg:flex-col">
                     {(["A", "B"] as const).map((team) => (
-                      <form key={team} action={updateMatchResult}>
+                      <form key={team} action={updateMatchResult} className="min-w-0 flex-1 lg:w-full">
                         <input type="hidden" name="matchId" value={match.id} />
                         <input type="hidden" name="winner" value={team} />
-                        <Button className={winner === team ? "min-h-8 w-28 bg-leaf px-3 py-1 text-[9px]" : `${tinyButton} w-28`}>
-                          {team === "A" ? "Alpha thắng" : "Bravo thắng"}
+                        <Button className={winner === team ? "min-h-8 w-full bg-leaf px-3 py-1 text-[9px]" : `${tinyButton} w-full`}>
+                          {team === "A" ? "T thắng" : "CT thắng"}
                         </Button>
                       </form>
                     ))}

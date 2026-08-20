@@ -4,6 +4,7 @@ import Link from "next/link";
 import { BalanceTable } from "@/components/balance-table";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { VersusBadge } from "@/components/versus-badge";
 import { WaterSummary } from "@/components/water-summary";
 import { getCurrentSession, getSession, getWaterData } from "@/lib/data";
 
@@ -78,7 +79,7 @@ export default async function HomePage() {
               return (
                 <article
                   key={match.id}
-                  className={`hud-corners grid gap-3 border p-3 md:grid-cols-[7rem_1fr_8rem] md:items-center ${pending ? "border-leaf/30 bg-leaf/5" : "border-cream/10 bg-black/20"}`}
+                  className={`hud-corners grid gap-3 border p-3 lg:grid-cols-[9.5rem_minmax(0,1fr)_13.5rem] lg:items-center ${pending ? "border-leaf/30 bg-leaf/5" : "border-cream/10 bg-black/20"}`}
                 >
                   <div>
                     <p className="text-[8px] font-black uppercase tracking-[0.18em] text-concrete">Trận {String(match.sequence).padStart(2, "0")}</p>
@@ -87,20 +88,20 @@ export default async function HomePage() {
                     </p>
                   </div>
 
-                  <div className="grid gap-2 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
-                    <div className={`hud-corners border px-3 py-2 ${winner === "A" ? "border-leaf/40 bg-leaf/10 text-leaf" : "border-cream/10 bg-black/20"}`}>
-                      <span className="text-[8px] font-black uppercase tracking-wider text-concrete">Alpha</span>
+                  <div className="matchup">
+                    <div className={`matchup__team matchup__team--left hud-corners border px-3 py-2 ${winner === "A" ? "matchup__team--winner-left border-leaf/40 text-leaf" : "border-cream/10 bg-black/20"}`}>
+                      <span className="text-[8px] font-black uppercase tracking-wider text-concrete">Terrorists</span>
                       <p className="font-bold">{teamA.map((item) => item.player.name).join(" + ")}</p>
                     </div>
-                    <span className="text-center font-serif font-black text-rust">VS</span>
-                    <div className={`hud-corners border px-3 py-2 ${winner === "B" ? "border-leaf/40 bg-leaf/10 text-leaf" : "border-cream/10 bg-black/20"}`}>
-                      <span className="text-[8px] font-black uppercase tracking-wider text-concrete">Bravo</span>
+                    <VersusBadge />
+                    <div className={`matchup__team matchup__team--right hud-corners border px-3 py-2 ${winner === "B" ? "matchup__team--winner-right border-leaf/40 text-leaf" : "border-cream/10 bg-black/20"}`}>
+                      <span className="text-[8px] font-black uppercase tracking-wider text-concrete">Counter-Terrorists</span>
                       <p className="font-bold">{teamB.map((item) => item.player.name).join(" + ")}</p>
                     </div>
                   </div>
 
                   <p className={`text-right text-[9px] font-black uppercase tracking-[0.16em] ${pending ? "text-rust" : "text-leaf"}`}>
-                    {pending ? "Chờ kết quả" : `${winner === "A" ? "Alpha" : "Bravo"} thắng`}
+                    {pending ? "Chờ kết quả" : `${winner === "A" ? "Terrorists" : "Counter-Terrorists"} thắng`}
                   </p>
                 </article>
               );
