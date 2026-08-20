@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import Link from "next/link";
 
 import { PerfectScroll } from "@/components/perfect-scroll";
+import { AdminEditProvider, EditableResourceName } from "@/components/admin-editable-resource";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -14,6 +15,8 @@ import {
   createWeapon,
   togglePlayerActive,
   toggleWeaponActive,
+  updatePlayerName,
+  updateWeaponName,
 } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -67,6 +70,7 @@ export default async function AdminPage() {
         </div>
       </div>
 
+      <AdminEditProvider>
       <div className="grid gap-5 lg:grid-cols-2">
         <Card>
           <div className="flex items-center gap-3">
@@ -86,10 +90,16 @@ export default async function AdminPage() {
                 <div key={player.id} className="flex items-center gap-3 bg-black/20 px-4 py-3">
                   <span className="w-7 text-[10px] font-bold text-concrete">{String(index + 1).padStart(2, "0")}</span>
                   <span className={`h-2 w-2 ${player.active ? "bg-leaf shadow-[0_0_10px_#ff6a00]" : "bg-concrete/30"}`} />
-                  <span className={`min-w-0 flex-1 font-bold ${player.active ? "text-cream" : "text-concrete line-through"}`}>{player.name}</span>
+                  <EditableResourceName
+                    resourceType="player"
+                    resourceId={player.id}
+                    name={player.name}
+                    active={player.active}
+                    updateAction={updatePlayerName}
+                  />
                   <form action={togglePlayerActive}>
                     <input type="hidden" name="playerId" value={player.id} />
-                    <Button className={tinyButton}>{player.active ? "Khóa" : "Mở"}</Button>
+                    <Button type="submit" className={tinyButton}>{player.active ? "Khóa" : "Mở"}</Button>
                   </form>
                 </div>
               ))}
@@ -116,10 +126,16 @@ export default async function AdminPage() {
                 <div key={weapon.id} className="flex items-center gap-3 bg-black/20 px-4 py-3">
                   <span className="w-7 text-[10px] font-bold text-concrete">W{String(index + 1).padStart(2, "0")}</span>
                   <Crosshair className={`h-4 w-4 ${weapon.active ? "text-leaf" : "text-concrete/30"}`} />
-                  <span className={`min-w-0 flex-1 font-bold ${weapon.active ? "text-cream" : "text-concrete line-through"}`}>{weapon.name}</span>
+                  <EditableResourceName
+                    resourceType="weapon"
+                    resourceId={weapon.id}
+                    name={weapon.name}
+                    active={weapon.active}
+                    updateAction={updateWeaponName}
+                  />
                   <form action={toggleWeaponActive}>
                     <input type="hidden" name="weaponId" value={weapon.id} />
-                    <Button className={tinyButton}>{weapon.active ? "Khóa" : "Mở"}</Button>
+                    <Button type="submit" className={tinyButton}>{weapon.active ? "Khóa" : "Mở"}</Button>
                   </form>
                 </div>
               ))}
@@ -128,6 +144,7 @@ export default async function AdminPage() {
           </PerfectScroll>
         </Card>
       </div>
+      </AdminEditProvider>
     </div>
   );
 }

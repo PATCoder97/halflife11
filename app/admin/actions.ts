@@ -58,6 +58,30 @@ export async function togglePlayerActive(formData: FormData) {
   revalidateScoreViews();
 }
 
+export async function updatePlayerName(formData: FormData): Promise<WaterPaymentActionState> {
+  try {
+    await requireAdmin();
+    const playerId = requiredString(formData, "playerId");
+    const name = requiredString(formData, "name");
+
+    const [player, duplicate] = await Promise.all([
+      prisma.player.findUnique({ where: { id: playerId }, select: { id: true } }),
+      prisma.player.findFirst({
+        where: { name, id: { not: playerId } },
+        select: { id: true },
+      }),
+    ]);
+    if (!player) throw new Error("Không tìm thấy người chơi");
+    if (duplicate) throw new Error("Tên người chơi đã tồn tại");
+
+    await prisma.player.update({ where: { id: playerId }, data: { name } });
+    revalidateScoreViews();
+    return { success: "Đã cập nhật tên người chơi" };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Không thể cập nhật tên người chơi" };
+  }
+}
+
 export async function createWeapon(formData: FormData) {
   await requireAdmin();
   const name = requiredString(formData, "name");
@@ -72,6 +96,30 @@ export async function toggleWeaponActive(formData: FormData) {
   if (!weapon) throw new Error("Không tìm thấy súng");
   await prisma.weapon.update({ where: { id: weaponId }, data: { active: !weapon.active } });
   revalidateScoreViews();
+}
+
+export async function updateWeaponName(formData: FormData): Promise<WaterPaymentActionState> {
+  try {
+    await requireAdmin();
+    const weaponId = requiredString(formData, "weaponId");
+    const name = requiredString(formData, "name");
+
+    const [weapon, duplicate] = await Promise.all([
+      prisma.weapon.findUnique({ where: { id: weaponId }, select: { id: true } }),
+      prisma.weapon.findFirst({
+        where: { name, id: { not: weaponId } },
+        select: { id: true },
+      }),
+    ]);
+    if (!weapon) throw new Error("Không tìm thấy súng");
+    if (duplicate) throw new Error("Tên súng đã tồn tại");
+
+    await prisma.weapon.update({ where: { id: weaponId }, data: { name } });
+    revalidateScoreViews();
+    return { success: "Đã cập nhật tên súng" };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Không thể cập nhật tên súng" };
+  }
 }
 
 export type WaterPaymentActionState = {
