@@ -5,6 +5,7 @@ import {
   generateDoublesRotations,
   generateShootingSchedule,
 } from "@/lib/match-generator";
+import { validateDoublesMatch } from "@/lib/match-validation";
 import { deriveStandings, type ScoreRow } from "@/lib/scoring";
 import { formatShootingPeriodName } from "@/lib/session-name";
 import { calculateSettlement } from "@/lib/settlement";
@@ -76,6 +77,18 @@ describe("derived scoring", () => {
       { teamA: ["A", "C"], teamB: ["B", "D"] },
       { teamA: ["A", "D"], teamB: ["B", "C"] },
     ]);
+  });
+});
+
+describe("manual doubles validation", () => {
+  it("accepts exactly four distinct players", () => {
+    expect(() => validateDoublesMatch(["A", "B"], ["C", "D"])).not.toThrow();
+  });
+
+  it("rejects a player selected on both teams", () => {
+    expect(() => validateDoublesMatch(["A", "B"], ["A", "D"])).toThrow(
+      "Một trận phải có 4 người chơi khác nhau",
+    );
   });
 });
 

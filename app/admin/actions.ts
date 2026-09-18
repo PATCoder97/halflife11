@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 
 import { authOptions, isAdminEmail } from "@/lib/auth";
 import { generateShootingSchedule } from "@/lib/match-generator";
-import { resultForTeam } from "@/lib/match-validation";
+import { resultForTeam, validateDoublesMatch } from "@/lib/match-validation";
 import { prisma } from "@/lib/prisma";
 import { deriveStandings } from "@/lib/scoring";
 import { formatShootingPeriodName } from "@/lib/session-name";
@@ -40,6 +40,21 @@ function revalidateScoreViews(sessionId?: string) {
   revalidatePath("/admin/sessions/history");
   revalidatePath("/history");
   if (sessionId) revalidatePath(`/sessions/${sessionId}`);
+}
+
+function manualMatchSelection(formData: FormData) {
+  const teamA = [
+    requiredString(formData, "teamAPlayer1"),
+    requiredString(formData, "teamAPlayer2"),
+  ];
+  const teamB = [
+    requiredString(formData, "teamBPlayer1"),
+    requiredString(formData, "teamBPlayer2"),
+  ];
+  const weaponId = requiredString(formData, "weaponId");
+
+  validateDoublesMatch(teamA, teamB);
+  return { teamA, teamB, weaponId };
 }
 
 export async function createPlayer(formData: FormData) {
@@ -284,6 +299,145 @@ export async function createGameSession(formData: FormData) {
     });
   });
   revalidateScoreViews();
+}
+
+export async function createManualMatch(formData: FormData) {
+  await requireAdmin();
+  const gameSessionId = requiredString(formData, "gameSessionId");
+  const { teamA, teamB, weaponId } = manualMatchSelection(formData);
+  const playerIds = [...teamA, ...teamB];
+
+  await prisma.$transaction(async (tx) => {
+    const session = await tx.gameSession.findFirst({
+      where: { id: gameSessionId, isCurrent: true },
+      select: {
+        id: true,
+        players: { where: { playerId: { in: playerIds } }, select: { playerId: true } },
+        weapons: { where: { weaponId }, select: { weaponId: true } },
+      },
+    });
+    if (!session) throw new Error("Kỳ bắn không còn hoạt động");
+    if (session.players.length !== 4) throw new Error("Người chơi không thuộc kỳ bắn này");
+    if (session.weapons.length !== 1) throw new Error("Súng không thuộc kỳ bắn này");
+
+    const latestMatch = await tx.match.aggregate({
+      where: { gameSessionId },
+      _max: { sequence: true },
+    });
+    await tx.match.create({
+      data: {
+        gameSessionId,
+        sequence: (latestMatch._max.sequence ?? 0) + 1,
+        weaponId,
+        matchPlayers: {
+          create: [
+            ...teamA.map((playerId) => ({ playerId, team: Team.A })),
+            ...teamB.map((playerId) => ({ playerId, team: Team.B })),
+          ],
+        },
+      },
+    });
+    const plannedMatchCount = await tx.match.count({ where: { gameSessionId } });
+    await tx.gameSession.update({
+      where: { id: gameSessionId },
+      data: { plannedMatchCount },
+    });
+  }, { isolationLevel: "Serializable" });
+
+  revalidateScoreViews(gameSessionId);
+}
+
+export async function updateManualMatch(formData: FormData) {
+  await requireAdmin();
+  const matchId = requiredString(formData, "matchId");
+  const { teamA, teamB, weaponId } = manualMatchSelection(formData);
+  const playerIds = [...teamA, ...teamB];
+
+  const gameSessionId = await prisma.$transaction(async (tx) => {
+    const match = await tx.match.findFirst({
+      where: { id: matchId, gameSession: { isCurrent: true } },
+      select: {
+        gameSessionId: true,
+        matchPlayers: { select: { result: true } },
+        gameSession: {
+          select: {
+            players: { where: { playerId: { in: playerIds } }, select: { playerId: true } },
+            weapons: { where: { weaponId }, select: { weaponId: true } },
+          },
+        },
+      },
+    });
+    if (!match) throw new Error("Không tìm thấy trận trong kỳ đang hoạt động");
+    if (match.matchPlayers.some((player) => player.result !== null)) {
+      throw new Error("Không thể sửa trận đã có kết quả");
+    }
+    if (match.gameSession.players.length !== 4) {
+      throw new Error("Người chơi không thuộc kỳ bắn này");
+    }
+    if (match.gameSession.weapons.length !== 1) {
+      throw new Error("Súng không thuộc kỳ bắn này");
+    }
+
+    await tx.match.update({
+      where: { id: matchId },
+      data: {
+        weaponId,
+        matchPlayers: {
+          deleteMany: {},
+          create: [
+            ...teamA.map((playerId) => ({ playerId, team: Team.A })),
+            ...teamB.map((playerId) => ({ playerId, team: Team.B })),
+          ],
+        },
+      },
+    });
+    return match.gameSessionId;
+  });
+
+  revalidateScoreViews(gameSessionId);
+}
+
+export async function deletePendingMatch(formData: FormData) {
+  await requireAdmin();
+  const matchId = requiredString(formData, "matchId");
+
+  const gameSessionId = await prisma.$transaction(async (tx) => {
+    const match = await tx.match.findFirst({
+      where: { id: matchId, gameSession: { isCurrent: true } },
+      select: {
+        gameSessionId: true,
+        sequence: true,
+        matchPlayers: { select: { result: true } },
+      },
+    });
+    if (!match) throw new Error("Không tìm thấy trận trong kỳ đang hoạt động");
+    if (match.matchPlayers.some((player) => player.result !== null)) {
+      throw new Error("Không thể xóa trận đã có kết quả");
+    }
+
+    await tx.match.delete({ where: { id: matchId } });
+    const laterMatches = await tx.match.findMany({
+      where: { gameSessionId: match.gameSessionId, sequence: { gt: match.sequence } },
+      orderBy: { sequence: "asc" },
+      select: { id: true, sequence: true },
+    });
+    for (const laterMatch of laterMatches) {
+      await tx.match.update({
+        where: { id: laterMatch.id },
+        data: { sequence: laterMatch.sequence - 1 },
+      });
+    }
+    const plannedMatchCount = await tx.match.count({
+      where: { gameSessionId: match.gameSessionId },
+    });
+    await tx.gameSession.update({
+      where: { id: match.gameSessionId },
+      data: { plannedMatchCount },
+    });
+    return match.gameSessionId;
+  }, { isolationLevel: "Serializable" });
+
+  revalidateScoreViews(gameSessionId);
 }
 
 export async function closeCurrentSession() {

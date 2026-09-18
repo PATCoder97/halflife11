@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import Link from "next/link";
 
 import { PerfectScroll } from "@/components/perfect-scroll";
+import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -13,6 +14,9 @@ import { prisma } from "@/lib/prisma";
 import {
   closeCurrentSession,
   createGameSession,
+  createManualMatch,
+  deletePendingMatch,
+  updateManualMatch,
   updateMatchResult,
 } from "../actions";
 
@@ -61,6 +65,12 @@ export default async function SessionManagementPage() {
   const completedMatches = currentSession?.matches.filter(
     (match) => match.matchPlayers.length === 4 && match.matchPlayers.every((item) => item.result !== null),
   ).length ?? 0;
+  const sessionPlayers = currentSession?.players
+    .map((item) => item.player)
+    .sort((left, right) => left.name.localeCompare(right.name, "vi")) ?? [];
+  const sessionWeapons = currentSession?.weapons
+    .map((item) => item.weapon)
+    .sort((left, right) => left.name.localeCompare(right.name, "vi")) ?? [];
 
   return (
     <div className="space-y-8">
@@ -162,6 +172,50 @@ export default async function SessionManagementPage() {
         </div>
       </Card>
 
+      {currentSession && (
+        <Card>
+          <div className="flex items-center gap-3">
+            <Crosshair className="h-6 w-6 text-leaf" />
+            <div>
+              <p className="text-[9px] font-black uppercase tracking-[0.24em] text-leaf">Manual encounter</p>
+              <h2 className="font-serif text-3xl font-bold uppercase">Tạo trận thủ công</h2>
+            </div>
+          </div>
+          <p className="mt-3 text-sm text-concrete">Chọn đúng 4 người khác nhau và một súng. Trận mới sẽ được thêm vào cuối kỳ bắn hiện tại.</p>
+          <form action={createManualMatch} className="mt-5 space-y-5">
+            <input type="hidden" name="gameSessionId" value={currentSession.id} />
+            <div className="grid gap-4 lg:grid-cols-[1fr_auto_1fr] lg:items-center">
+              <fieldset className="hud-corners space-y-3 border border-cream/10 bg-black/20 p-4">
+                <legend className="px-2 text-[9px] font-black uppercase tracking-[0.2em] text-leaf">Terrorists</legend>
+                {(["teamAPlayer1", "teamAPlayer2"] as const).map((name, index) => (
+                  <select key={name} name={name} defaultValue={sessionPlayers[index]?.id} className={inputClass} required>
+                    {sessionPlayers.map((player) => <option key={player.id} value={player.id}>{player.name}</option>)}
+                  </select>
+                ))}
+              </fieldset>
+              <VersusBadge />
+              <fieldset className="hud-corners space-y-3 border border-cream/10 bg-black/20 p-4">
+                <legend className="px-2 text-[9px] font-black uppercase tracking-[0.2em] text-leaf">Counter-Terrorists</legend>
+                {(["teamBPlayer1", "teamBPlayer2"] as const).map((name, index) => (
+                  <select key={name} name={name} defaultValue={sessionPlayers[index + 2]?.id} className={inputClass} required>
+                    {sessionPlayers.map((player) => <option key={player.id} value={player.id}>{player.name}</option>)}
+                  </select>
+                ))}
+              </fieldset>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+              <label className="space-y-2 text-[10px] font-bold uppercase tracking-wider text-concrete">
+                Súng sử dụng
+                <select name="weaponId" defaultValue={sessionWeapons[0]?.id} className={inputClass} required>
+                  {sessionWeapons.map((weapon) => <option key={weapon.id} value={weapon.id}>{weapon.name}</option>)}
+                </select>
+              </label>
+              <Button type="submit" className="w-full sm:w-auto">Thêm trận thủ công</Button>
+            </div>
+          </form>
+        </Card>
+      )}
+
       <Card>
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -209,6 +263,49 @@ export default async function SessionManagementPage() {
                       </form>
                     ))}
                   </div>
+                  {!winner && (
+                    <details className="border-t border-cream/10 pt-3 lg:col-span-3">
+                      <summary className="cursor-pointer text-[9px] font-black uppercase tracking-[0.18em] text-concrete hover:text-leaf">Sửa hoặc xóa trận</summary>
+                      <form action={updateManualMatch} className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-5">
+                        <input type="hidden" name="matchId" value={match.id} />
+                        {(["teamAPlayer1", "teamAPlayer2"] as const).map((name, index) => (
+                          <label key={name} className="space-y-2 text-[9px] font-bold uppercase tracking-wider text-concrete">
+                            T {index + 1}
+                            <select name={name} defaultValue={teamA[index]?.playerId} className={inputClass} required>
+                              {sessionPlayers.map((player) => <option key={player.id} value={player.id}>{player.name}</option>)}
+                            </select>
+                          </label>
+                        ))}
+                        {(["teamBPlayer1", "teamBPlayer2"] as const).map((name, index) => (
+                          <label key={name} className="space-y-2 text-[9px] font-bold uppercase tracking-wider text-concrete">
+                            CT {index + 1}
+                            <select name={name} defaultValue={teamB[index]?.playerId} className={inputClass} required>
+                              {sessionPlayers.map((player) => <option key={player.id} value={player.id}>{player.name}</option>)}
+                            </select>
+                          </label>
+                        ))}
+                        <label className="space-y-2 text-[9px] font-bold uppercase tracking-wider text-concrete">
+                          Súng
+                          <select name="weaponId" defaultValue={match.weaponId ?? undefined} className={inputClass} required>
+                            {sessionWeapons.map((weapon) => <option key={weapon.id} value={weapon.id}>{weapon.name}</option>)}
+                          </select>
+                        </label>
+                        <div className="flex gap-2 md:col-span-2 lg:col-span-5">
+                          <Button type="submit" className="min-h-9 px-4 py-2 text-[9px]">Lưu thay đổi</Button>
+                        </div>
+                      </form>
+                      <form action={deletePendingMatch} className="mt-2">
+                        <input type="hidden" name="matchId" value={match.id} />
+                        <ConfirmSubmitButton
+                          type="submit"
+                          message={`Xóa trận ${match.sequence}? Thao tác này không thể hoàn tác.`}
+                          className="min-h-9 border-rust bg-rust px-4 py-2 text-[9px]"
+                        >
+                          Xóa trận
+                        </ConfirmSubmitButton>
+                      </form>
+                    </details>
+                  )}
                 </div>
               );
             })}
